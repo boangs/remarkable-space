@@ -446,7 +446,7 @@ func (h *Handler) installURL(w http.ResponseWriter, r *http.Request) {
 		Name   string `json:"name"` // 同上
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.URL == "" {
-		fail(w, http.StatusBadRequest, "需要 {\"url\": ...}")
+		fail(w, http.StatusBadRequest, "暂时无法下载，请稍后刷新再试")
 		return
 	}
 	// 后台装, 立刻返回 —— 下载几 MB 在设备上要十几秒, 同步等的话界面只能干等, 连

@@ -606,6 +606,12 @@ Rectangle {
     // 墨水屏不跑动画 —— 每次重绘都是实打实的屏幕刷新, 进度条滚起来既慢又闪, 给个百分比
     // 数字最省事; 轮询间隔 1.2 秒也是这个道理, 太密了屏幕一直在抖。
     function installFromStore(item) {
+        // 商店给不出下载地址 (服务端临时打不出这台设备的专属包, 2026-10-26 磁盘满过一次): 别把
+        // 后台的「需要 {"url": ...}」甩给用户, 说人话; 下拉刷新拿到新索引就能装
+        if (!item.zip) {
+            showToast(space.st("store_no_download", { name: item.name }))
+            return
+        }
         busyText = space.st("downloading", { name: item.name })
         request("POST", baseUrl + "/space/apps/install-url",
                 { url: item.zip, sha256: item.sha256 || "", id: item.id, name: item.name },

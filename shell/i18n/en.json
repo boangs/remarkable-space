@@ -73,6 +73,7 @@
   "reading_page": "Page {page}",
   "confirm_delete": "Remove \"{name}\"?",
   "confirm_delete_note": "App data is kept — it'll still be there if you reinstall.",
+  "store_no_download": "\"{name}\" can't be downloaded right now. Refresh and try again later.",
   "install_failed_code": "Install failed ({code})",
   "about_xhs": "Scan to find me on Xiaohongshu (RED)",
   "about_xhs_id": "RED ID: boangs",

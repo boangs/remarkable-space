@@ -73,6 +73,7 @@
   "reading_page": "第 {page} 页",
   "confirm_delete": "删除「{name}」？",
   "confirm_delete_note": "应用数据会保留，重新安装后还在。",
+  "store_no_download": "「{name}」暂时无法下载，请稍后刷新再试",
   "install_failed_code": "安装失败 ({code})",
   "about_xhs": "扫码在小红书找到我",
   "about_xhs_id": "小红书号：boangs",
