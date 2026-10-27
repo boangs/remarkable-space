@@ -192,7 +192,7 @@ Item {
                             anchors.centerIn: parent
                             width: 52; height: 52
                             sourceSize.width: 52; sourceSize.height: 52
-                            source: "refresh-icons/" + parent.modelData[0] + (parent.sel ? "-on" : "") + ".svg"
+                            source: "refresh-icons/" + parent.modelData[0] + (parent.sel ? "-on" : "") + ".svg?v=2"   // 改了图标就把 v 加一 (图片按地址缓存)
                         }
                         MouseArea {
                             anchors.fill: parent
