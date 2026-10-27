@@ -62,12 +62,14 @@ Rectangle {
     // 应用跑在 appHost 里自然继承, 所以应用侧不要再自己挂。
     property string screenMode: "ui"
     property var _screenModeItem: null
-    // 刷新档位 (从慢到快)。值存进外壳配置, 对应 xochitl 的 ScreenModeItem 波形:
+    // 刷新档位 (从慢到快)。值存进外壳配置, 对应 xochitl 的 ScreenModeItem 波形
+    // (枚举 Pen/Mono/Animation/UI/Content/Sleep/Overlay, 名字不代表效果, 以真机为准):
     //   content   高清: 灰阶、颜色最准, 最慢, 会闪
     //   ui        快刷 (默认)
-    //   animation 流畅: 再快一档, 灰阶和颜色更粗
-    //   mono      极速: 只有黑白两色, 最快; 照片、彩色图标会变成黑白
-    readonly property var screenModes: ["content", "ui", "animation", "mono"]
+    //   pen       流畅: 笔迹用的那档, 带彩色的快刷 (Overlay 实测同效果, 不另设)
+    //   mono      极速: 名叫 Mono 但 3.29 实测仍带一点颜色, 灰阶和颜色最粗
+    // Animation 实测只有黑白且刷得慢, 已去掉; 存过 animation 的配置读不进来, 回到默认快刷
+    readonly property var screenModes: ["content", "ui", "pen", "mono"]
     property bool screenModeOpen: false   // 设置页档位列表是否展开
     // 选档位: 必须放在外壳自己的函数里做 —— 收起列表会当场销毁被点的那一行,
     // 写在行的 onClicked 里的话, 收起之后的语句找不到 space, 配置没存上,
@@ -78,10 +80,10 @@ Rectangle {
         screenModeOpen = false
     }
     function screenModeEnum(m) {
-        return ({ content: "Content", animation: "Animation", mono: "Mono" })[m] || "UI"
+        return ({ content: "Content", mono: "Mono", pen: "Pen" })[m] || "UI"
     }
     function screenModeLabel(m) {
-        return space.st(({ content: "screenmode_hd", animation: "screenmode_anim", mono: "screenmode_mono" })[m] || "screenmode_fast")
+        return space.st(({ content: "screenmode_hd", pen: "screenmode_smooth", mono: "screenmode_turbo" })[m] || "screenmode_fast")
     }
     function applyScreenMode() {
         if (space._screenModeItem) { space._screenModeItem.destroy(); space._screenModeItem = null }
