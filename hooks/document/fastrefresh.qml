@@ -162,7 +162,7 @@ Item {
         if (tapRow) { tapRow.destroy(); tapRow = null }
     }
 
-    // 一行: 左边「刷新」, 右边三个图标 (选中的黑底反白, 不配字), 字体字号同系统菜单项
+    // 一行: 左边「刷新」, 右边三段图标 (高清 图片 / 快刷 风 / 流畅 闪电, 选中段黑底反白, 不配字), 字体字号同系统菜单项
     Component {
         id: rowComp
         Item {
@@ -178,25 +178,38 @@ Item {
                 color: "#000000"
                 font.family: "reMarkable Sans"; font.pixelSize: 25; font.weight: Font.Medium
             }
-            Row {
+            Rectangle {   // 分段控件: 一个圆角长条三段, 选中的那段填黑、图标反白 (同系统开关一类形状)
+                id: seg
                 anchors.right: parent.right; anchors.rightMargin: 32
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 18
-                Repeater {
-                    model: [["content"], ["ui"], ["pen"]]   // 高清 / 快刷 / 流畅
-                    Item {
-                        required property var modelData
-                        readonly property bool sel: root.mode === modelData[0]
-                        width: 64; height: 64
-                        Image {   // 选中: 圆角框实心黑底、图形反白 (refresh-icons/<档>-on.svg)
-                            anchors.centerIn: parent
-                            width: 52; height: 52
-                            sourceSize.width: 52; sourceSize.height: 52
-                            source: "refresh-icons/" + parent.modelData[0] + (parent.sel ? "-on" : "") + ".svg?v=2"   // 改了图标就把 v 加一 (图片按地址缓存)
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: (mouse) => root.choose(parent.modelData[0])
+                width: 3 * 76; height: 56
+                radius: height / 2
+                color: "#ffffff"
+                border.color: "#000000"; border.width: 2
+                Row {
+                    anchors.fill: parent
+                    Repeater {
+                        model: ["content", "ui", "pen"]   // 高清 (图片) / 快刷 (风) / 流畅 (闪电)
+                        Item {
+                            required property string modelData
+                            readonly property bool sel: root.mode === modelData
+                            width: seg.width / 3; height: seg.height
+                            Rectangle {
+                                anchors.fill: parent; anchors.margins: 5
+                                radius: height / 2
+                                color: parent.sel ? "#000000" : "transparent"
+                            }
+                            Image {
+                                anchors.centerIn: parent
+                                width: 32; height: 32
+                                sourceSize.width: 32; sourceSize.height: 32
+                                // 改了图标就把 v 加一 (图片按地址缓存)
+                                source: "refresh-icons/" + parent.modelData + (parent.sel ? "-on" : "") + ".svg?v=6"
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: (mouse) => root.choose(parent.modelData)
+                            }
                         }
                     }
                 }
