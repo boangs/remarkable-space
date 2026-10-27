@@ -162,7 +162,7 @@ Item {
         if (tapRow) { tapRow.destroy(); tapRow = null }
     }
 
-    // 一行: 左边「刷新」, 右边三段 (选中的黑底白字), 字体字号同系统菜单项
+    // 一行: 左边「刷新」, 右边三个图标 (选中的黑底反白, 不配字), 字体字号同系统菜单项
     Component {
         id: rowComp
         Item {
@@ -178,38 +178,25 @@ Item {
                 color: "#000000"
                 font.family: "reMarkable Sans"; font.pixelSize: 25; font.weight: Font.Medium
             }
-            Rectangle {
-                id: seg
+            Row {
                 anchors.right: parent.right; anchors.rightMargin: 32
                 anchors.verticalCenter: parent.verticalCenter
-                width: 3 * 76; height: 52
-                radius: height / 2
-                color: "#ffffff"
-                border.color: "#000000"; border.width: 2
-                clip: true
-                Row {
-                    anchors.fill: parent
-                    Repeater {
-                        model: [["content", "高清", "HD"], ["ui", "快刷", "Fast"], ["pen", "流畅", "Smooth"]]
-                        Item {
-                            required property var modelData
-                            readonly property bool sel: root.mode === modelData[0]
-                            width: seg.width / 3; height: seg.height
-                            Rectangle {
-                                anchors.fill: parent; anchors.margins: 4
-                                radius: height / 2
-                                color: parent.sel ? "#000000" : "transparent"
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                text: r.zh ? modelData[1] : modelData[2]
-                                color: parent.sel ? "#ffffff" : "#000000"
-                                font.family: "reMarkable Sans"; font.pixelSize: 22; font.weight: Font.Medium
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: (mouse) => root.choose(parent.modelData[0])
-                            }
+                spacing: 18
+                Repeater {
+                    model: [["content"], ["ui"], ["pen"]]   // 高清 / 快刷 / 流畅
+                    Item {
+                        required property var modelData
+                        readonly property bool sel: root.mode === modelData[0]
+                        width: 64; height: 64
+                        Image {   // 选中: 圆角框实心黑底、图形反白 (refresh-icons/<档>-on.svg)
+                            anchors.centerIn: parent
+                            width: 52; height: 52
+                            sourceSize.width: 52; sourceSize.height: 52
+                            source: "refresh-icons/" + parent.modelData[0] + (parent.sel ? "-on" : "") + ".svg"
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: (mouse) => root.choose(parent.modelData[0])
                         }
                     }
                 }
