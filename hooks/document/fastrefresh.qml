@@ -16,10 +16,10 @@
 //
 // 菜单行作为列表 (ColumnLayout) 里独立的项, 插在「启用形状」后面 (做法见 attachRow)。
 // 运行时注入的组件里 Timer 不触发, 所有"等一会"都靠注入库每秒递增的 hookTick。
+// xofm.libs.epaper / ark.controls 都不静态 import, 运行时 createQmlObject: 哪台机器 (如 rm2 的老固件)
+// 缺哪个模块, 只少对应那一样 (刷新档位 / 原生开关), 整个挂件不会因为一行 import 编译失败。
 import QtQuick
 import QtQuick.Layouts
-import xofm.libs.epaper
-import ark.controls as ArkControls
 
 Item {
     id: root
@@ -97,7 +97,7 @@ Item {
     function apply() {
         if (mode === "content") {
             if (modeItem) {
-                modeItem.mode = ScreenModeItem.Content
+                modeItem.mode = modeItem.mContent
                 dropping = modeItem
                 modeItem = null
             }
@@ -105,12 +105,15 @@ Item {
         }
         if (!modeItem) {
             try {
+                // 枚举值顺手带出来, 本文件不 import xofm.libs.epaper
                 modeItem = Qt.createQmlObject(
-                    "import QtQuick; import xofm.libs.epaper; ScreenModeItem { anchors.fill: parent }",
+                    "import QtQuick; import xofm.libs.epaper; ScreenModeItem { anchors.fill: parent;"
+                    + " readonly property int mContent: ScreenModeItem.Content;"
+                    + " readonly property int mUI: ScreenModeItem.UI; readonly property int mPen: ScreenModeItem.Pen }",
                     root, "fastRefreshMode")
             } catch (e) { log("ScreenModeItem 不可用: " + e); return }
         }
-        modeItem.mode = mode === "pen" ? ScreenModeItem.Pen : ScreenModeItem.UI
+        modeItem.mode = mode === "pen" ? modeItem.mPen : modeItem.mUI
     }
     onModeChanged: apply()
 
@@ -234,9 +237,26 @@ Item {
                 color: "#000000"
                 font.family: "reMarkable Sans"; font.pixelSize: 25; font.weight: Font.Medium
             }
-            ArkControls.Toggle {
-                x: 280; y: 16
-                checked: root.tapOn
+            // 系统开关 (ark.controls Toggle, 样子同「启用形状」); 没有这个模块就用下面自己画的
+            property var nativeToggle: null
+            Component.onCompleted: {
+                try {
+                    nativeToggle = Qt.createQmlObject("import QtQuick; import ark.controls as ArkControls; ArkControls.Toggle { x: 280; y: 16 }", t, "tapToggle")
+                    nativeToggle.checked = Qt.binding(function () { return root.tapOn })
+                } catch (e) { nativeToggle = null }
+            }
+            Rectangle {
+                visible: !t.nativeToggle
+                x: 280; y: 32; width: 88; height: 48
+                radius: height / 2
+                color: root.tapOn ? "#000000" : "#ffffff"
+                border.color: "#000000"; border.width: 2
+                Rectangle {
+                    width: 36; height: 36; radius: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: root.tapOn ? parent.width - width - 6 : 6
+                    color: root.tapOn ? "#ffffff" : "#000000"
+                }
             }
             MouseArea {                // 整行都能点; 盖在开关上面, 开关只跟着状态显示
                 anchors.fill: parent
@@ -281,7 +301,7 @@ Item {
     }
     Component.onCompleted: load()
     Component.onDestruction: {
-        if (modeItem) modeItem.mode = ScreenModeItem.Content
+        if (modeItem) modeItem.mode = modeItem.mContent
         detachRow()
     }
 }
