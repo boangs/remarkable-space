@@ -390,8 +390,11 @@ Rectangle {
 
     // 开机语言: 后端那套推断是异步的, 来不及赶上首帧, 这里同步猜一次。
     // 外壳就在 xochitl 进程里, /proc/self/maps 里映射着哪个 reMarkable_xx.qm 就是
-    // 系统当前的界面语言 (和后端 SystemLang 同一个办法); 读不到再认用户存的偏好,
-    // 都没有按中文。
+    // 系统当前的界面语言 (和后端 SystemLang 同一个办法)。但 /proc 文件报的大小是 0,
+    // XHR 按大小读回来是空的, 实际上这一步一直读不到 —— 所以再看上一次后端定下的语言
+    // (shell/lastlang.json, 每次定稿都记), 再没有才认用户存的偏好, 都没有按中文。
+    // 不能直接拿偏好: 系统语言优先于偏好, 偏好是 en 而系统是中文时, 后端回话前那一瞬
+    // 会先显示英文 (自更新后第一次打开, 后端正重启, 界面就停在了英文空白页, 2026-10-27)。
     function sysLangSync() {
         var x = new XMLHttpRequest()
         try {
@@ -405,6 +408,9 @@ Rectangle {
     }
     readonly property string bootLang: {
         var l = sysLangSync()
+        if (l) return l
+        var last = readJsonSync("file:///home/root/.local/share/rmkit-cn/space/data/shell/lastlang.json")
+        l = normLang(last && last.lang ? last.lang : "")
         if (l) return l
         var cfg = readJsonSync("file:///home/root/.local/share/rmkit-cn/space/data/shell/config.json")
         l = normLang(cfg && cfg.lang ? cfg.lang : "")
@@ -529,8 +535,12 @@ Rectangle {
             langPref = r.langPref || ""
             langSystem = normLang(r.langSystem || "")
             setLang(r.lang || "en")
-            // bootLang 阶段已经同步读过一次了; 只有最终定的语言和开机猜的不一样才重读
-            if (lang !== bootLang) loadShellDict()
+            // bootLang 阶段已经同步读过一次了; 只有最终定的语言和开机猜的不一样才重读,
+            // 并记下这次的结果, 下次开机首帧就猜对 (单独一个文件, 不跟 config 抢着整份写)
+            if (lang !== bootLang) {
+                loadShellDict()
+                request("PUT", baseUrl + "/space/apps/shell/data/lastlang", { lang: lang }, null)
+            }
             console.warn("SPACE-LANG: boot=" + JSON.stringify(bootLang) + " system=" + JSON.stringify(langSystem) + " pref=" + JSON.stringify(langPref) + " ⇒ " + lang)
             apps = r.apps || []
             if (!space.upd && r.spaceVersion) space.upd = { current: r.spaceVersion }
