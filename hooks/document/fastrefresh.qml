@@ -8,11 +8,18 @@
 // (EPScreenModeMap 每变一次几何就整屏重合成): 快刷↔流畅只改 mode, 只有回高清时才拆。
 // 拆之前先把档位改回 Content 再等一拍销毁: 直接销毁时屏幕驱动里那块快刷标记可能留着不清。
 //
-// 菜单行作为列表 (ColumnLayout) 里独立的一项, 插在「启用形状」后面 (做法见 attachRow)。
+// 下面再一行「点击翻页」开关 (同样按文档记住, 存同一个文件的 "tap": {"<文档 id>": true}; 默认关):
+// 手指点屏幕左 1/3 上一页、右 1/3 下一页, 中间留给系统 (呼出工具栏)。只认触屏 (笔点不算),
+// 笔在感应范围内或刚离开 1 秒内不翻, 顶部工具栏那条和弹出菜单开着时不翻。
+// TapHandler 是被动监听, 系统的滑动翻页 / 双指缩放照常。手掌偶尔会被当成点击 (界面层分不清手掌,
+// 芯片报的 PALM 类型到 Qt 这层丢了), 2026-10-27 和用户商定先这样。
+//
+// 菜单行作为列表 (ColumnLayout) 里独立的项, 插在「启用形状」后面 (做法见 attachRow)。
 // 运行时注入的组件里 Timer 不触发, 所有"等一会"都靠注入库每秒递增的 hookTick。
 import QtQuick
 import QtQuick.Layouts
 import xofm.libs.epaper
+import ark.controls as ArkControls
 
 Item {
     id: root
@@ -33,10 +40,14 @@ Item {
         return (m === "ui" || m === "pen") ? m : "content"
     }
 
+    property var taps: ({})
+    readonly property bool tapOn: loaded && docId !== "" && taps[docId] === true
+
     property var modeItem: null         // 整屏的刷新标记
     property var dropping: null         // 已改回 Content、等下一拍销毁的旧标记
     property var menuLoader: null       // 系统菜单的「…」按钮 (secondaryToolLoader_settingsMenu), 找到就缓存
-    property var row: null              // 我们插进菜单的那一行
+    property var row: null              // 我们插进菜单的「刷新」行
+    property var tapRow: null           // 「点击翻页」行
 
     function log(s) { console.warn("[fastrefresh] " + s) }
 
@@ -44,9 +55,10 @@ Item {
         var x = new XMLHttpRequest()
         x.onreadystatechange = function () {
             if (x.readyState !== XMLHttpRequest.DONE) return
-            var d = {}
-            if (x.status === 200) { try { d = (JSON.parse(x.responseText) || {}).docs || {} } catch (e) {} }
-            root.docs = d
+            var o = {}
+            if (x.status === 200) { try { o = JSON.parse(x.responseText) || {} } catch (e) {} }
+            root.docs = o.docs || {}
+            root.taps = o.tap || {}
             root.loaded = true
         }
         x.open("GET", api)
@@ -59,7 +71,7 @@ Item {
         }
         x.open("PUT", api)
         x.setRequestHeader("Content-Type", "application/json")
-        x.send(JSON.stringify({ docs: docs }))
+        x.send(JSON.stringify({ docs: docs, tap: taps }))
     }
     function choose(m) {
         if (!docId || m === mode) return
@@ -68,6 +80,16 @@ Item {
         if (m === "content") delete d[docId]
         else d[docId] = m
         docs = d
+        save()
+    }
+
+    function toggleTap() {
+        if (!docId) return
+        var d = {}
+        for (var k in taps) if (taps[k] === true) d[k] = true
+        if (tapOn) delete d[docId]
+        else d[docId] = true
+        taps = d
         save()
     }
 
@@ -113,7 +135,7 @@ Item {
         }
         var sl = findByName(menuLoader, "toggleToolLoader_enableShapesButton", 0)
         if (!sl) return                    // 菜单没打开 (收起时整棵子树不可见)
-        if (row && row.parent === sl.parent) return
+        if (row && tapRow && row.parent === sl.parent) return
         detachRow()
         // 「启用形状」按钮的高度是只读的, 撑不高; 改成在列表里另起一项: 先追加到末尾,
         // 再把「启用形状」之后的系统项按原顺序挪到它后面 (只换位置, 系统项本身不动)。
@@ -123,7 +145,9 @@ Item {
             if (kids[i] === sl) { seen = true; continue }
             if (seen && ("" + kids[i]).indexOf("QQuickRepeater") !== 0) later.push(kids[i])
         }
-        row = rowComp.createObject(col, { zh: /[一-鿿]/.test(shapesLabel(sl)) })
+        var zh = /[\u4e00-\u9fff]/.test(shapesLabel(sl))
+        row = rowComp.createObject(col, { zh: zh })
+        tapRow = tapRowComp.createObject(col, { zh: zh })
         for (var k = 0; k < later.length; k++) { later[k].parent = shelf; later[k].parent = col }
     }
     Item { id: shelf; visible: false }  // 挪位置时的临时落脚处
@@ -135,6 +159,7 @@ Item {
     }
     function detachRow() {
         if (row) { row.destroy(); row = null }
+        if (tapRow) { tapRow.destroy(); tapRow = null }
     }
 
     // 一行: 左边「刷新」, 右边三段 (选中的黑底白字), 字体字号同系统菜单项
@@ -191,6 +216,62 @@ Item {
             }
             MouseArea { anchors.fill: parent; z: -1 }   // 行内空白处吃掉点击, 别穿到下面的文档
         }
+    }
+
+    // 「点击翻页」行: 系统开关, 样子同「启用形状」
+    Component {
+        id: tapRowComp
+        Item {
+            id: t
+            property bool zh: true
+            Layout.fillWidth: true
+            Layout.preferredHeight: 112
+            implicitWidth: 400; implicitHeight: 112
+            Text {
+                x: 32; y: 36; height: 40
+                verticalAlignment: Text.AlignVCenter
+                text: t.zh ? "点击翻页" : "Tap to turn pages"
+                color: "#000000"
+                font.family: "reMarkable Sans"; font.pixelSize: 25; font.weight: Font.Medium
+            }
+            ArkControls.Toggle {
+                x: 280; y: 16
+                checked: root.tapOn
+            }
+            MouseArea {                // 整行都能点; 盖在开关上面, 开关只跟着状态显示
+                anchors.fill: parent
+                z: 10
+                onClicked: (mouse) => root.toggleTap()
+            }
+        }
+    }
+
+    // ─── 点击翻页 ─────────────────────────────────────────────
+    readonly property bool penClose: docView ? docView.penClose === true : false
+    property double penLeftAt: 0
+    onPenCloseChanged: if (!penClose) penLeftAt = Date.now()
+    function menuOpen(o, depth) {
+        if (!o || depth > 40) return false
+        try { if (o.visible === false) return false } catch (e) { return false }
+        if (("" + o).indexOf("ToolbarFoldout") === 0 && o.height > 0) return true
+        var ch = o.children || []
+        for (var i = 0; i < ch.length; i++) if (menuOpen(ch[i], depth + 1)) return true
+        return false
+    }
+    function tapTurn(p) {
+        if (!tapOn || !docView) return
+        var dir = p.x < width / 3 ? -1 : (p.x > width * 2 / 3 ? 1 : 0)
+        if (dir === 0 || p.y < 100) return                          // 中间 / 顶部工具栏那条留给系统
+        if (penClose || Date.now() - penLeftAt < 1000) return       // 拿着笔
+        if (docView.subDialogOpen || menuOpen(docView, 0)) return   // 弹窗 / 菜单开着
+        var n = docView.currentPage + dir
+        if (n >= 0 && n < docView.pageCount) docView.openPage(n)
+    }
+    TapHandler {
+        enabled: root.tapOn
+        acceptedDevices: PointerDevice.TouchScreen
+        gesturePolicy: TapHandler.DragThreshold
+        onTapped: (eventPoint, button) => root.tapTurn(eventPoint.position)
     }
 
     onHookTickChanged: {
