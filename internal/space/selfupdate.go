@@ -377,6 +377,11 @@ func SelfTest(dir, arch string) error {
 	}
 	r := &Registry{BuiltinDir: filepath.Join(dir, "apps"), Arch: arch}
 	for _, a := range r.scanDir(r.BuiltinDir, true) {
+		// 只给别的架构的内置应用 (如 Android 只有 aarch64) 在本机本来就不显示, 不算坏 ——
+		// 之前把「不支持本机架构」也当自检失败, rm2 (armv7) 永远自更新不了
+		if !a.SupportsArch(arch) {
+			continue
+		}
 		if a.Error != "" {
 			return fmt.Errorf("内置应用 %s: %s", a.ID, a.Error)
 		}
