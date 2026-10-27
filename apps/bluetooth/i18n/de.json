@@ -1,0 +1,22 @@
+{
+  "backend_down": "Hintergrunddienst antwortet nicht ({code})",
+  "bt_off_hint": "Bluetooth ist aus – „Suchen“ schaltet es ein",
+  "bt_off": "Bluetooth ist aus",
+  "no_audio": "Audiokomponenten sind nicht installiert – Koppeln ist möglich, aber keine Tonwiedergabe",
+  "scanning": "Suche läuft (10 s) … Kopfhörer in den Kopplungsmodus versetzen",
+  "scan_failed": "Suche fehlgeschlagen: {err}",
+  "nothing_found": "Keine benannten Geräte gefunden. Sicherstellen, dass sich der Kopfhörer im Kopplungsmodus befindet, und erneut suchen.",
+  "pairing": "Kopplung …",
+  "connecting": "Verbindung wird hergestellt …",
+  "working": "Wird ausgeführt …",
+  "failed": "Fehlgeschlagen ({code})",
+  "headset": "Kopfhörer",
+  "scan": "Suchen",
+  "empty": "Noch keine Geräte. Kopfhörer in den Kopplungsmodus versetzen und oben rechts auf „Suchen“ tippen.",
+  "connected": "  Verbunden",
+  "paired": "  Gekoppelt",
+  "disconnect": "Trennen",
+  "connect": "Verbinden",
+  "pair": "Koppeln",
+  "forget": "Vergessen"
+}

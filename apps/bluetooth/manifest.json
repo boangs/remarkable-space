@@ -1,12 +1,18 @@
 {
   "id": "bluetooth",
-  "name": "蓝牙",
-  "name_en": "Bluetooth",
+  "name": "Bluetooth",
+  "names": {
+    "zh-CN": "蓝牙",
+    "fr": "Bluetooth",
+    "de": "Bluetooth"
+  },
   "version": "1.0.0",
-  "description": "蓝牙耳机扫描、配对、连接",
+  "description": "Scan, pair and connect Bluetooth headphones",
   "icon": "icon.svg",
   "entry": "main.qml",
   "category": "settings",
   "order": 50,
-  "arch": ["aarch64"]
+  "arch": [
+    "aarch64"
+  ]
 }

@@ -368,11 +368,9 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	apps := h.Reg.List()
 	lang := h.CurrentLang()
 	for i := range apps {
-		// 按界面语言给应用名定稿, 前端拿到的 name 就是该显示的那个。
-		// 没填 name_en 的应用保持原名 —— 总比显示个 id 强。
-		if lang != "zh-CN" && apps[i].NameEn != "" {
-			apps[i].Name = apps[i].NameEn
-		}
+		// Settle the app name for the UI language, so the front end gets the name to show.
+		// An app with no translation keeps its original name - better than showing an id.
+		apps[i].Name = apps[i].DisplayName(lang)
 		if apps[i].Service != nil {
 			st := h.Sup.Status(apps[i].ID)
 			if st.Running {

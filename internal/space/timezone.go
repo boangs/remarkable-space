@@ -15,6 +15,12 @@ import (
 //
 //	GET /space/timezones   设置里可选的时区: [{name, zh, en, offset}] (offset 分钟, 按现在算, 夏令时也对)
 
+// defaultTimezone is used when the user has not picked a zone and neither $TZ nor
+// ~/.config/rmkit-cn/space.json says anything. Upstream defaulted to Beijing time;
+// this fork targets Western Europe. It must be one of the names in tzChoices below,
+// otherwise the settings list cannot highlight the current choice.
+const defaultTimezone = "Europe/Berlin"
+
 // tzChoice 设置里列出的时区 (按偏移从东到西; 同偏移只留用户最认得的那个城市)
 var tzChoices = []struct{ Name, Zh, En string }{
 	{"Pacific/Auckland", "新西兰 奥克兰", "Auckland"},
@@ -72,11 +78,15 @@ func (h *Handler) localTimezone() (string, int) {
 		}
 	}
 	if name == "" {
-		name = "Asia/Shanghai"
+		name = defaultTimezone
 	}
 	loc, err := time.LoadLocation(name)
 	if err != nil {
-		return "Asia/Shanghai", 480
+		// unknown zone name: fall back to the default (tzdata is embedded, so this load succeeds)
+		name = defaultTimezone
+		if loc, err = time.LoadLocation(name); err != nil {
+			return name, 60
+		}
 	}
 	_, off := time.Now().In(loc).Zone()
 	return name, off / 60

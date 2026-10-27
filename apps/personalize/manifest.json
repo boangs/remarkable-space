@@ -1,9 +1,13 @@
 {
   "id": "personalize",
-  "name": "个性化",
-  "name_en": "Personalize",
+  "name": "Personalize",
+  "names": {
+    "zh-CN": "个性化",
+    "fr": "Personnaliser",
+    "de": "Anpassen"
+  },
   "version": "1.0.0",
-  "description": "系统字体与休眠壁纸",
+  "description": "System font and sleep screen",
   "icon": "qrc:/ark/icons/cog",
   "entry": "main.qml",
   "category": "settings",

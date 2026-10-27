@@ -1,0 +1,22 @@
+{
+  "backend_down": "Le service ne répond pas ({code})",
+  "bt_off_hint": "Le Bluetooth est désactivé — « Rechercher » l'activera",
+  "bt_off": "Le Bluetooth est désactivé",
+  "no_audio": "Les composants audio ne sont pas installés — l'appairage est possible, mais pas la lecture du son",
+  "scanning": "Recherche en cours (10 s)… mettez votre casque en mode d'appairage",
+  "scan_failed": "Échec de la recherche : {err}",
+  "nothing_found": "Aucun appareil nommé trouvé. Vérifiez que votre casque est en mode d'appairage, puis relancez la recherche.",
+  "pairing": "Appairage…",
+  "connecting": "Connexion…",
+  "working": "En cours…",
+  "failed": "Échec ({code})",
+  "headset": "Casque",
+  "scan": "Rechercher",
+  "empty": "Aucun appareil pour l'instant. Mettez votre casque en mode d'appairage, puis touchez « Rechercher » en haut à droite.",
+  "connected": "  Connecté",
+  "paired": "  Appairé",
+  "disconnect": "Déconnecter",
+  "connect": "Connecter",
+  "pair": "Appairer",
+  "forget": "Oublier"
+}

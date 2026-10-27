@@ -18,7 +18,13 @@ func TestNormalizeLang(t *testing.T) {
 		"en_US.UTF-8": "en",
 		"en-GB":       "en",
 		"":            "en",
-		"de_DE":       "en", // 还没有德语词典
+		"de_DE":       "de",
+		"de_CH.UTF-8": "de",
+		"de-AT":       "de",
+		"fr_FR":       "fr",
+		"fr-CA":       "fr",
+		"fr":          "fr",
+		"pt_BR":       "en", // no Portuguese dictionary yet: falls back to English
 		"gibberish":   "en",
 	}
 	for in, want := range cases {
@@ -39,7 +45,21 @@ func writeConf(t *testing.T, body string) string {
 	return p
 }
 
+// clearLangEnv makes a test independent of the developer's own locale.
+//
+// ResolveLang falls back to $LC_ALL, $LC_MESSAGES and $LANG when neither Space's settings nor
+// xochitl.conf name a language. Before French was supported, a machine set to fr_FR passed
+// these tests by accident (fr normalised to "en"). The environment is a hidden input of the
+// function, so every test that depends on "no language configured" must empty it first.
+func clearLangEnv(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(k, "") // restored automatically when the test ends
+	}
+}
+
 func TestResolveLang(t *testing.T) {
+	clearLangEnv(t)
 	// 用户在系统设置里选过中文
 	withLang := writeConf(t, "[General]\nKeyboard=en_US\nLanguage=zh_CN\n\n[Dialogs]\nLanguage=en\n")
 	if got := ResolveLang("", withLang); got != "zh-CN" {
@@ -69,9 +89,29 @@ func TestResolveLang(t *testing.T) {
 
 // [General] 之后的段里有同名键时, 不能读串。
 func TestResolveLangStopsAtNextSection(t *testing.T) {
+	clearLangEnv(t)
 	p := writeConf(t, "[General]\nAutoUpdate=true\n\n[Other]\nLanguage=zh_CN\n")
 	if got := ResolveLang("", p); got != "en" {
 		t.Errorf("[Other] 段里的 Language 不该被读到, 得到 %q", got)
+	}
+}
+
+// The environment fallback itself: LC_ALL beats LC_MESSAGES beats LANG (POSIX precedence).
+func TestResolveLangFromEnvironment(t *testing.T) {
+	clearLangEnv(t)
+	noConf := filepath.Join(t.TempDir(), "nope.conf")
+
+	t.Setenv("LANG", "de_DE.UTF-8")
+	if got := ResolveLang("", noConf); got != "de" {
+		t.Errorf("LANG=de_DE.UTF-8 gave %q, want de", got)
+	}
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	if got := ResolveLang("", noConf); got != "fr" {
+		t.Errorf("LC_MESSAGES should beat LANG, got %q, want fr", got)
+	}
+	t.Setenv("LC_ALL", "C") // "C" means "no language": skipped, falls through to the next variable
+	if got := ResolveLang("", noConf); got != "fr" {
+		t.Errorf("LC_ALL=C should be ignored, got %q, want fr", got)
 	}
 }
 

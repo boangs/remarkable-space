@@ -43,7 +43,7 @@ Item {
             root._rmhTheme = r.active || "default"
             for (var i = 0; i < (r.themes || []).length; ++i) {
                 var t = r.themes[i]
-                _rmhThemeModel.append({ tid: t.id, tname: (space.lang === "en" && t.name_en) ? t.name_en : t.name, tpreview: t.preview || "" })
+                _rmhThemeModel.append({ tid: t.id, tname: (space.lang !== "zh-CN" && t.name_en) ? t.name_en : t.name, tpreview: t.preview || "" })
             }
         })
     }

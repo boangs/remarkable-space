@@ -233,8 +233,8 @@ Rectangle {
     property var recentDoc: null      // 最近在读的文档 (/space/recent, 取自 xochitl 元数据)
     property string storeError: ""
     property bool storeLoaded: false
-    property int tzOffset: 480            // 后端给的本地时区偏移 (分钟); 设备系统时区是 UTC
-    property string tzName: "Asia/Shanghai" // 后端最终定的时区名
+    property int tzOffset: 60             // local zone offset in minutes, set by the backend; the device clock is UTC
+    property string tzName: "Europe/Berlin" // zone name decided by the backend (must match defaultTimezone in timezone.go)
     property string tzPref: ""            // 用户在设置里选的 (shell/config.json 的 timezone); 空 = 默认北京时间
     property var tzList: []               // 设置里可选的时区 (GET /space/timezones)
     property bool tzOpen: false           // 设置页时区列表是否展开
@@ -326,7 +326,7 @@ Rectangle {
         function svcGet(path, cb) { space.request("GET", serviceUrl + path, null, cb) }
         function svcPost(path, body, cb) { space.request("POST", serviceUrl + path, body, cb) }
         function localNow() { return space.localNow() }   // 按设备时区 (见 /space/apps 的 tzOffset) 的当前时间
-        // 当前界面语言 (zh-CN / en)。跟随 reMarkable 系统设置, 应用不用自己判断。
+        // Current UI language (en / fr / de / zh-CN). Follows the reMarkable system setting; apps need not detect it.
         readonly property string lang: space.lang
         // 查本应用 i18n/<lang>.json 的词条; 缺词回落 en, 再回落 key 本身。
         // 不要用 qsTr —— 注入进来的 QML 查不到 Qt 的翻译表 (已验证), tr 走自己的词典。
@@ -406,7 +406,7 @@ Rectangle {
         if (l) return l
         var cfg = readJsonSync("file:///home/root/.local/share/rmkit-cn/space/data/shell/config.json")
         l = normLang(cfg && cfg.lang ? cfg.lang : "")
-        return l || "zh-CN"
+        return l || "en"
     }
     property var shellDict: readJsonSync(shellDir + "/i18n/" + bootLang + ".json") || ({})
     property var shellDictEn: bootLang === "en" ? shellDict
@@ -422,12 +422,31 @@ Rectangle {
         var low = s.toLowerCase()
         if (low.indexOf("zh") === 0) return "zh-CN"
         if (low === "en" || low.indexOf("en-") === 0) return "en"
+        if (low === "fr" || low.indexOf("fr-") === 0) return "fr"
+        if (low === "de" || low.indexOf("de-") === 0) return "de"
         return ""
     }
 
     function setLang(code) {
         var n = normLang(code)
         lang = n || "en"
+    }
+
+    // Language picker (only shown when the system language cannot be read).
+    // Keep in sync with SupportedLangs in internal/space/lang.go.
+    readonly property var chooseableLangs: ["en", "fr", "de", "zh-CN"]
+    function langNativeName(code) {
+        var names = { "en": "English", "fr": "Fran\u00e7ais", "de": "Deutsch", "zh-CN": "\u4e2d\u6587\uff08\u7b80\u4f53\uff09" }
+        return names[code] || code
+    }
+    function nextLang(code) {
+        var i = chooseableLangs.indexOf(code)
+        return chooseableLangs[(i + 1) % chooseableLangs.length]   // unknown code (-1) -> first entry
+    }
+    // Qt locale used to format dates in the home card.
+    function qtLocaleName() {
+        var m = { "zh-CN": "zh_CN", "fr": "fr_FR", "de": "de_DE" }
+        return m[lang] || "en_US"
     }
 
     // 设置里切语言。写进 shell/config.json 的 lang 键, 顺手把当前应用的词典重读一遍,
@@ -445,8 +464,11 @@ Rectangle {
     // 词典里写 "正在下载 {name}…" / "Downloading {name}…" —— 占位符位置随语言走。
     // 查词: 先当前语言再 en 再 key 本身。args.n === 1 时先试 <key>_one ——
     // 英文单复数不同 ("1 album" / "2 albums"), 中文词典不用写 _one, 找不到就落回原 key。
+    // Which numbers use the "<key>_one" (singular) form? English and German: only 1.
+    // French: 0 and 1 ("0 album", "1 album", "2 albums").
+    function isSingular(n) { return n === 1 || (lang === "fr" && n === 0) }
     function lookup(d, dEn, key, args) {
-        if (args && args.n === 1) {
+        if (args && isSingular(args.n)) {
             var one = d[key + "_one"]
             if (one === undefined && d[key] === undefined) one = dEn[key + "_one"]
             if (one !== undefined) return one
@@ -896,7 +918,7 @@ Rectangle {
         return space.st("tab_home")
     }
     function dateLine() {
-        return localNow().toLocaleDateString(Qt.locale(space.lang === "zh-CN" ? "zh_CN" : "en_US"), space.st("date_format"))
+        return localNow().toLocaleDateString(Qt.locale(qtLocaleName()), space.st("date_format"))
     }
 
     Timer { id: toastTimer; interval: 4000; repeat: false; onTriggered: space.toastText = "" }
@@ -1759,8 +1781,8 @@ Rectangle {
                     ui: space.fs
                     iconSource: space.icon("translate")
                     text: space.st("set_language")
-                    detail: space.lang === "zh-CN" ? "\u4e2d\u6587\uff08\u7b80\u4f53\uff09" : "English"
-                    onClicked: space.chooseLang(space.lang === "zh-CN" ? "en" : "zh-CN")
+                    detail: space.langNativeName(space.lang)
+                    onClicked: space.chooseLang(space.nextLang(space.lang))
                 }
                 Kit.SRow {
                     th: space.th
