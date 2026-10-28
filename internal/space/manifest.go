@@ -89,6 +89,8 @@ type Manifest struct {
 	Hooks map[string][]string `json:"hooks,omitempty"`
 	// Theme 主题包: 应用目录里放主题的子目录 (里面一个 theme.json)。装好后链进用户主题目录, 见 theme.go。
 	Theme string `json:"theme,omitempty"`
+	// Uploads 在手机扫码上传页登记的标签页 (收哪些文件、交给后台哪个接口), 见 uploads.go
+	Uploads []Upload `json:"uploads,omitempty"`
 }
 
 // HookPoints 注入库开放的挂点 (base/intercept/qml-inject/qml_inject_impl.cpp 的「通用挂载点」一节)
@@ -146,6 +148,9 @@ func (m *Manifest) Validate() error {
 	}
 	if m.Stickers != "" && !isRelativeInside(m.Stickers) {
 		return fmt.Errorf("stickers 必须是应用目录内的相对路径: %q", m.Stickers)
+	}
+	if err := m.validateUploads(); err != nil {
+		return err
 	}
 	for pt, files := range m.Hooks {
 		if !HookPoints[pt] {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"regexp"
 	"runtime"
 
 	"crypto/rand"
@@ -160,6 +161,7 @@ func (s *Server) Routes() http.Handler {
 
 	// 「空间」启动台: 应用注册表 / 绿色安装 / 应用后台托管 (internal/space, 与具体应用无关)
 	if s.space != nil {
+		s.space.UploadGate = s.lib.Queue.Active
 		s.space.Mount(mux)
 	}
 
@@ -341,11 +343,17 @@ a{display:inline-block;padding:12px 20px;border:2px solid #111;border-radius:10p
 
 // ---- QR ----
 
-// qrFocus: 仅允许 doc/font/screen/space/ai (qr.html 现有五 tab); 其他值忽略.
+// qrFocus: 内置的 doc/font/screen/space/ai, 或应用登记的 <应用>.<上传项>; 其他值忽略.
+var qrAppFocusRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,31}\.[a-z0-9][a-z0-9_-]{0,31}$`)
+
 func qrFocus(r *http.Request) string {
-	switch r.URL.Query().Get("focus") {
+	f := r.URL.Query().Get("focus")
+	switch f {
 	case "doc", "font", "screen", "space", "ai":
-		return r.URL.Query().Get("focus")
+		return f
+	}
+	if qrAppFocusRe.MatchString(f) { // 应用登记的上传项: <应用 id>.<上传项 id>
+		return f
 	}
 	return ""
 }

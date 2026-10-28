@@ -34,6 +34,8 @@ import (
 //	POST   /space/apps/{id}/service/stop    收掉后台
 //	GET    /space/apps/{id}/data/{key}      读应用数据 (JSON, 存在 dataDir/<key>.json; 纯 QML 应用的持久化)
 //	PUT    /space/apps/{id}/data/{key}      写应用数据 (body 是 JSON, ≤1MB)
+//	GET    /space/uploads                   扫码上传页上各应用登记的标签页 (uploads.go)
+//	POST   /space/apps/{id}/upload/{slot}   上传文件转给应用后台; GET 取列表, DELETE …/{name} 删一项
 //	GET    /space/recent                    最近在读的文档 (书名/页码/进度, 取自 xochitl 元数据)
 type Handler struct {
 	Reg *Registry
@@ -48,6 +50,9 @@ type Handler struct {
 	// 配了就走三步握手, 索引按这台设备定制; 空 = 退回直接取 StoreURL 那份静态索引,
 	// 自建商店只要摆一个 JSON 文件就能用, 不必实现握手。
 	StoreAPI string
+
+	// UploadGate 扫码上传页的总闸 (「空间」没开着就不收), 由 upload-server 设; nil = 不拦
+	UploadGate func() bool
 
 	auth *StoreAuth
 
@@ -113,6 +118,10 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("POST /space/apps/{id}/service/stop", h.serviceStop)
 	mux.HandleFunc("GET /space/apps/{id}/data/{key}", h.dataGet)
 	mux.HandleFunc("PUT /space/apps/{id}/data/{key}", h.dataPut)
+	mux.HandleFunc("GET /space/uploads", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, http.StatusOK, h.uploadSlots()) })
+	mux.HandleFunc("POST /space/apps/{id}/upload/{slot}", h.uploadProxy)
+	mux.HandleFunc("GET /space/apps/{id}/upload/{slot}", h.uploadProxy)
+	mux.HandleFunc("DELETE /space/apps/{id}/upload/{slot}/{name}", h.uploadProxy)
 	mux.HandleFunc("GET /space/store", h.store)
 	mux.HandleFunc("GET /space/device", h.device)
 	mux.HandleFunc("GET /space/recent", h.recent)

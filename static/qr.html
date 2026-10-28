@@ -22,10 +22,10 @@
   .subtitle { font-size: 13px; color: #888; text-align: center; margin-bottom: 18px; }
 
   .tabs {
-    display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 18px;
+    display: flex; flex-wrap: wrap; gap: 2px; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 18px;
   }
   .tab {
-    flex: 1; padding: 10px 0; text-align: center;
+    flex: 1 0 22%; padding: 10px 0; text-align: center;
     font-size: 14px; font-weight: 500; color: #555;
     border-radius: 7px; cursor: pointer; user-select: none;
     transition: background 0.15s, color 0.15s;
@@ -194,7 +194,36 @@
 </div>
 
 <script>
-(function() {
+// 应用登记的上传标签页 (manifest.uploads → GET /space/uploads): 先拼进页面, 再走下面的通用初始化
+function addAppSlots(slots) {
+  const zh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
+  const tabBar = document.querySelector('.tabs');
+  const anchor = document.getElementById('panel-ai');
+  (slots || []).forEach(sl => {
+    const key = 'app-' + sl.app + '-' + sl.id;
+    const ep = '/space/apps/' + encodeURIComponent(sl.app) + '/upload/' + encodeURIComponent(sl.id);
+    const label = (!zh && sl.label_en) ? sl.label_en : sl.label;
+    const hint = (!zh && sl.hint_en) ? sl.hint_en : (sl.hint || '');
+    const tab = document.createElement('div');
+    tab.className = 'tab'; tab.dataset.target = key; tab.dataset.focus = sl.app + '.' + sl.id; tab.textContent = label;
+    tabBar.appendChild(tab);
+    const panel = document.createElement('div');
+    panel.className = 'panel'; panel.id = 'panel-' + key;
+    const pick = document.createElement('label');
+    pick.className = 'pick'; pick.htmlFor = 'file-' + key;
+    pick.textContent = '📎 ' + (zh ? '选择文件' : 'Choose file') + ' (' + sl.accept.join(' / ') + ')';
+    const input = document.createElement('input');
+    input.type = 'file'; input.id = 'file-' + key; input.dataset.endpoint = ep;
+    input.accept = sl.accept.join(','); input.multiple = !!sl.multiple;
+    panel.appendChild(pick); panel.appendChild(input);
+    if (hint) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = hint; panel.appendChild(p); }
+    if (sl.list) { const ul = document.createElement('ul'); ul.className = 'file-list'; ul.dataset.list = ep; panel.appendChild(ul); }
+    anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+  });
+}
+fetch('/space/uploads').then(r => r.ok ? r.json() : []).catch(() => []).then(slots => { addAppSlots(slots); initPage(); });
+
+function initPage() {
   const tabs = document.querySelectorAll('.tab');
   const panels = document.querySelectorAll('.panel');
   function activateTab(target) {
@@ -204,7 +233,10 @@
   tabs.forEach(t => t.addEventListener('click', () => activateTab(t.dataset.target)));
 
   const focus = new URLSearchParams(location.search).get('focus');
-  if (focus && document.querySelector('.tab[data-target="' + focus + '"]')) {
+  const appTab = focus && document.querySelector('.tab[data-focus="' + focus + '"]');
+  if (appTab) {
+    activateTab(appTab.dataset.target);
+  } else if (focus && document.querySelector('.tab[data-target="' + focus + '"]')) {
     activateTab(focus);
   }
 
@@ -426,7 +458,7 @@
   });
 
   loadAIConfig();
-})();
+}
 </script>
 </body>
 </html>
