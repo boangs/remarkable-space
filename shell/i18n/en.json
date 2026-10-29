@@ -58,10 +58,6 @@
   "store_unreachable": "Can't reach the store ({code})",
   "delete_failed": "Remove failed ({code})",
   "deleted": "{name} removed",
-  "downloading": "Downloading {name}…",
-  "downloading_pct": "Downloading {name}… {pct}%",
-  "downloading_mb": "Downloading {name}… {mb} MB",
-  "installing": "Installing {name}…",
   "installed_toast": "{name} installed",
   "not_installed": "{id} is not installed",
   "starting_service": "Starting {name}'s service…",
@@ -86,5 +82,8 @@
   "upd_restarting": "Restarting the backend. Close and reopen Space when it's done",
   "upd_confirm": "Update Space to {ver} (about {mb} MB)?\nYour apps and data stay as they are.",
   "upd_failed": "Update failed: {err}",
-  "upd_rolled_back": "The new version didn't start, so Space went back to the previous one"
+  "upd_rolled_back": "The new version didn't start, so Space went back to the previous one",
+  "btn_downloading": "Downloading…",
+  "btn_installing": "Installing…",
+  "install_busy": "Installing {name}, try again when it's done"
 }

@@ -58,10 +58,6 @@
   "store_unreachable": "连不上应用商店 ({code})",
   "delete_failed": "删除失败 ({code})",
   "deleted": "{name} 已删除",
-  "downloading": "正在下载 {name}…",
-  "downloading_pct": "正在下载 {name}… {pct}%",
-  "downloading_mb": "正在下载 {name}… {mb} MB",
-  "installing": "正在安装 {name}…",
   "installed_toast": "{name} 已安装",
   "not_installed": "没有安装 {id}",
   "starting_service": "正在启动 {name} 的后台…",
@@ -86,5 +82,8 @@
   "upd_restarting": "正在重启后台，装好后关掉空间再打开",
   "upd_confirm": "更新空间到 {ver}（约 {mb} MB）？\n已装的应用和数据都不受影响，笔记里的功能不会中断。",
   "upd_failed": "更新没成功：{err}",
-  "upd_rolled_back": "新版本没能启动，已回到原来的版本"
+  "upd_rolled_back": "新版本没能启动，已回到原来的版本",
+  "btn_downloading": "下载中…",
+  "btn_installing": "安装中…",
+  "install_busy": "正在装 {name}，装完再来"
 }

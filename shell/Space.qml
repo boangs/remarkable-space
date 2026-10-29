@@ -271,6 +271,9 @@ Rectangle {
     property bool chrome: true        // false = 应用全屏 (自己画导航)
     property string toastText: ""
     property string busyText: ""
+    // 商店正在装的应用 {id, name, text}: 进度只写在那一行的按钮上, 不盖全屏 —— 以前盖遮罩,
+    // Wi-Fi 连着却上不了网时要卡到下载超时, 空间退不出去也没法去设置里换网
+    property var installing: null
     property var confirmApp: null
     // 通用确认框。原来只为"重启进 Android"这类 launch.confirm 服务, 删应用也得问一句,
     // 所以拆出一条独立的: 文案 + 一个点space.st("ok")才跑的回调。
@@ -449,7 +452,7 @@ Rectangle {
         if (current) loadDict(current)
     }
 
-    // 外壳自己的文案。args 传对象做占位替换: st("downloading", {name: "天气"})
+    // 外壳自己的文案。args 传对象做占位替换: st("deleted", {name: "天气"})
     // 词典里写 "正在下载 {name}…" / "Downloading {name}…" —— 占位符位置随语言走。
     // 查词: 先当前语言再 en 再 key 本身。args.n === 1 时先试 <key>_one ——
     // 英文单复数不同 ("1 album" / "2 albums"), 中文词典不用写 _one, 找不到就落回原 key。
@@ -567,6 +570,7 @@ Rectangle {
 
     function loadStore(refresh) {
         storeError = ""
+        if (!installing) resumeInstall()
         request("GET", baseUrl + "/space/store" + (refresh ? "?refresh=1" : ""), null, function(st, r) {
             storeLoaded = true
             if (st !== 200 || !r) { storeError = (r && r.error) ? r.error : space.st("store_unreachable", { code: st }); storeApps = []; return }
@@ -624,17 +628,29 @@ Rectangle {
             showToast(space.st("store_no_download", { name: item.name }))
             return
         }
-        busyText = space.st("downloading", { name: item.name })
+        if (installing) {
+            showToast(space.st("install_busy", { name: installing.name }))
+            return
+        }
+        installing = { id: item.id, name: item.name, text: space.st("btn_downloading") }
         request("POST", baseUrl + "/space/apps/install-url",
                 { url: item.zip, sha256: item.sha256 || "", id: item.id, name: item.name },
                 function (st, r) {
                     if (st !== 200 && st !== 202) {
-                        busyText = ""
+                        installing = null
                         showToast((r && r.error) ? r.error : space.st("install_failed_code", { code: st }))
                         return
                     }
                     installPoll.restart()
                 })
+    }
+    // 打开空间时接上没装完的那次 (装的途中退出过空间, 后台还在装)
+    function resumeInstall() {
+        request("GET", baseUrl + "/space/apps/install-progress", null, function (st, p) {
+            if (st !== 200 || !p || !p.phase || p.phase === "done" || p.phase === "error") return
+            installing = { id: p.id, name: p.name, text: space.st("btn_downloading") }
+            installPoll.restart()
+        })
     }
 
     Timer {
@@ -648,18 +664,17 @@ Rectangle {
             // 原来按阶段名逐个匹配, 新增一个阶段就会掉到下面的收尾逻辑里 ——
             // 进度框闪一下就没, 装完也不刷新列表, 看着像安装失败了。
             if (p.phase !== "done" && p.phase !== "error") {
-                if (p.phase === "installing") {
-                    space.busyText = space.st("installing", { name: p.name })
-                } else {
-                    // 服务器没给 Content-Length 时只报已下多少, 别显示一个假的百分比
-                    space.busyText = p.total > 0
-                            ? space.st("downloading_pct", { name: p.name, pct: Math.round(p.got * 100 / p.total) })
-                            : space.st("downloading_mb", { name: p.name, mb: (p.got / 1048576).toFixed(1) })
-                }
+                var t
+                if (p.phase === "installing") t = space.st("btn_installing")
+                // 服务器没给 Content-Length 时只报已下多少, 别显示一个假的百分比
+                else if (p.total > 0) t = Math.round(p.got * 100 / p.total) + "%"
+                else if (p.got > 0) t = (p.got / 1048576).toFixed(1) + " MB"
+                else t = space.st("btn_downloading")
+                space.installing = { id: p.id || (space.installing ? space.installing.id : ""), name: p.name, text: t }
                 return
             }
             installPoll.stop()
-            space.busyText = ""
+            space.installing = null
             if (p.phase === "error") { space.showToast(p.error || space.st("install_failed")); return }
             if (p.phase === "done") {
                 space.showToast(space.st("installed_toast", { name: p.name || space.st("app_fallback_name") }))
@@ -1729,11 +1744,13 @@ Rectangle {
                                 // 线上比本机新才算有更新 (本机更新或一样 = 已安装, 不让点, 免得降级)
                                 readonly property bool newer: storeRow.installed !== ""
                                     && space.versionCmp(storeRow.modelData.version, storeRow.installed) > 0
-                                enabled: locked || storeRow.installed === "" || newer
-                                text: locked ? space.st("act_buy")
+                                readonly property bool mine: !!space.installing && space.installing.id === storeRow.modelData.id
+                                enabled: !mine && (locked || storeRow.installed === "" || newer)
+                                text: mine ? space.installing.text
+                                      : locked ? space.st("act_buy")
                                       : (storeRow.installed === "" ? space.st("act_get")
                                          : (newer ? space.st("act_update") : space.st("act_installed")))
-                                primary: locked || storeRow.installed === ""
+                                primary: !mine && (locked || storeRow.installed === "")
                                 onClicked: {
                                     if (locked) space.buyPrompt(storeRow.modelData)
                                     else space.installFromStore(storeRow.modelData)

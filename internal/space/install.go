@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -493,7 +494,11 @@ func (r *Registry) unlinkHooks(appDir string) {
 // downloadPkg 下载应用包 / 更新包写进 f, 带取包凭证 hdr; 超过 limit 或 sha256 对不上都算失败。
 // onProgress(已下字节, 总字节) 给界面显示进度 (总字节 0 = 服务器没给 Content-Length)。
 func downloadPkg(url, sha256hex string, hdr http.Header, f *os.File, limit int64, onProgress func(int64, int64)) error {
-	client := &http.Client{Timeout: 5 * time.Minute}
+	// 连接 / 等响应头单独限时: Wi-Fi 连着却上不了外网时 15 秒就报错, 别干等到 5 分钟的总超时
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.DialContext = (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext
+	tr.ResponseHeaderTimeout = 30 * time.Second
+	client := &http.Client{Timeout: 5 * time.Minute, Transport: tr}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("下载失败: 地址无效: %w", err)
