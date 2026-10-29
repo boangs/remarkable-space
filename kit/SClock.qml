@@ -29,7 +29,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: clock.now.toLocaleDateString(Qt.locale("zh_CN"), "yyyy年M月d日 dddd")
             font.pixelSize: 26
-            color: clock.th ? clock.th.text2 : "#262626"
+            color: clock.th ? clock.th.text2 : "#000000"
         }
     }
 }

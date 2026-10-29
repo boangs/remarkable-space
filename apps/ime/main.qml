@@ -90,7 +90,7 @@ Item {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             font.pixelSize: 22
-            color: "#555555"
+            color: "#000000"
             text: space.tr("hint")
         }
     }

@@ -42,7 +42,7 @@ Item {
             id: _rmhQrUrl
             Layout.alignment: Qt.AlignHCenter
             font.pixelSize: 22
-            color: "#444444"
+            color: "#000000"
             visible: _rmhQrImage.visible
         }
         Text {
@@ -50,7 +50,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             text: space.tr("no_wifi")
             font.pixelSize: 22
-            color: "#c62828"
+            color: "#000000"
             visible: !_rmhQrImage.visible
         }
         Item { Layout.fillHeight: true }

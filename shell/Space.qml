@@ -193,7 +193,7 @@ Rectangle {
     readonly property var thDefault: ({
         bg: "white", card: "white", fill: "#f0f0f0", press: "#eeeeee",
         line: "#B4AFA6", lineSoft: "#C4BFB6", lineFaint: "#E2DED6",
-        text: "#000000", text2: "#262626", textBody: "#1A1A18", text3: "#26251F", textNote: "#1F1E1B",
+        text: "#000000", text2: "#000000", textBody: "#000000", text3: "#000000", textNote: "#000000",
         primary: "#000000", primaryText: "white",
         radius: 12, border: 1, hero: "", icons: ({}), slots: ({}), id: "default"
     })
@@ -1502,7 +1502,7 @@ Rectangle {
                     visible: space.listError !== ""
                     text: space.listError
                     font.pixelSize: space.fpx(24)
-                    color: "#a00000"
+                    color: "#000000"
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -1944,7 +1944,7 @@ Rectangle {
             anchors.fill: parent
             text: space.st("app_load_failed") + "\n" + space.appError
             font.pixelSize: space.fpx(24)
-            color: "#a00000"
+            color: "#000000"
             wrapMode: Text.WrapAnywhere
         }
     }

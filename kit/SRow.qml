@@ -40,7 +40,7 @@ Item {
             visible: row.detail !== ""
             text: row.detail
             font.pixelSize: Math.round(22 * row.ui)
-            color: row.th ? row.th.text3 : "#26251F"
+            color: row.th ? row.th.text3 : "#000000"
         }
         Image {
             visible: row.showArrow && row.interactive
@@ -50,7 +50,6 @@ Item {
             fillMode: Image.PreserveAspectFit
             sourceSize.width: 24
             sourceSize.height: 24
-            opacity: 0.6
         }
     }
     Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: row.th ? row.th.lineSoft : "#C4BFB6" }

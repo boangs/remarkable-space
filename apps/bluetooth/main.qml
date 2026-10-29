@@ -66,20 +66,20 @@ Item {
             Item { Layout.fillWidth: true }
             Rectangle {
                 Layout.preferredWidth: 200; Layout.preferredHeight: 64; radius: 8
-                color: root._rmhBtBusy ? "#eeeeee" : "#222222"
-                Text { anchors.centerIn: parent; color: root._rmhBtBusy ? "#888888" : "#ffffff"; font.pixelSize: 24; text: space.tr("scan") }
+                color: "#000000"; opacity: root._rmhBtBusy ? 0.4 : 1
+                Text { anchors.centerIn: parent; color: "#ffffff"; font.pixelSize: 24; text: space.tr("scan") }
                 MouseArea { anchors.fill: parent; enabled: !root._rmhBtBusy; onClicked: root.btScan() }
             }
         }
         Text {
             visible: root._rmhBtStatus !== ""
             text: root._rmhBtStatus
-            font.pixelSize: 22; color: "#555555"; wrapMode: Text.WordWrap; Layout.fillWidth: true
+            font.pixelSize: 22; color: "#000000"; wrapMode: Text.WordWrap; Layout.fillWidth: true
         }
         Text {
             visible: root._rmhBtDevices.length === 0
             text: space.tr("empty")
-            font.pixelSize: 24; color: "#555555"; wrapMode: Text.WordWrap; Layout.fillWidth: true
+            font.pixelSize: 24; color: "#000000"; wrapMode: Text.WordWrap; Layout.fillWidth: true
         }
         Repeater {
             model: root._rmhBtDevices
@@ -95,7 +95,7 @@ Item {
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 2
                         Text { text: _rmhBtRow.modelData.name; font.pixelSize: 26; elide: Text.ElideRight; Layout.fillWidth: true }
-                        Text { text: _rmhBtRow.modelData.mac + (_rmhBtRow.modelData.connected ? space.tr("connected") : (_rmhBtRow.modelData.paired ? space.tr("paired") : "")); font.pixelSize: 20; color: "#777777" }
+                        Text { text: _rmhBtRow.modelData.mac + (_rmhBtRow.modelData.connected ? space.tr("connected") : (_rmhBtRow.modelData.paired ? space.tr("paired") : "")); font.pixelSize: 20; color: "#000000" }
                     }
                     Rectangle {
                         Layout.preferredWidth: 150; Layout.preferredHeight: 56; radius: 6
@@ -107,7 +107,7 @@ Item {
                         visible: _rmhBtRow.modelData.paired && !_rmhBtRow.modelData.connected
                         Layout.preferredWidth: 110; Layout.preferredHeight: 56; radius: 6
                         color: "transparent"; border.color: "#bbbbbb"; border.width: 1
-                        Text { anchors.centerIn: parent; font.pixelSize: 22; color: "#777777"; text: space.tr("forget") }
+                        Text { anchors.centerIn: parent; font.pixelSize: 22; color: "#000000"; text: space.tr("forget") }
                         MouseArea { anchors.fill: parent; enabled: !root._rmhBtBusy; onClicked: root.btAction("remove", _rmhBtRow.modelData.mac) }
                     }
                 }

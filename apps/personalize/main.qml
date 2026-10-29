@@ -124,7 +124,7 @@ Item {
                         readonly property bool on: root.sect === modelData.k
                         width: Math.round((_rmhPersCol.width - 2) / 4)
                         height: 68
-                        color: on ? "#262626" : "white"
+                        color: on ? "#000000" : "white"
                         border.color: "#B4AFA6"
                         border.width: 1
                         Text {
@@ -132,7 +132,7 @@ Item {
                             text: parent.modelData.t
                             font.pixelSize: 26
                             font.weight: parent.on ? Font.Medium : Font.Normal
-                            color: parent.on ? "white" : "#262626"
+                            color: parent.on ? "white" : "#000000"
                         }
                         MouseArea { anchors.fill: parent; onClicked: root.sect = parent.modelData.k }
                     }
@@ -156,7 +156,7 @@ Item {
                 Layout.fillWidth: true
                 text: space.tr("theme_hint")
                 font.pixelSize: 22
-                color: "#4A4A46"
+                color: "#000000"
                 wrapMode: Text.WordWrap
             }
             Repeater {
@@ -188,7 +188,7 @@ Item {
                         anchors.right: parent.right; anchors.rightMargin: 20
                         text: space.tr("active")
                         font.pixelSize: 22
-                        color: "#262626"
+                        color: "#000000"
                     }
                     Image {
                         anchors.left: parent.left; anchors.right: parent.right
@@ -378,7 +378,7 @@ Item {
                                 horizontalAlignment: Text.AlignHCenter
                                 text: space.tr("active")
                                 font.pixelSize: 16
-                                color: "#666666"
+                                color: "#000000"
                             }
 
                             Item { Layout.fillHeight: true }
@@ -425,7 +425,7 @@ Item {
                 text: space.tr("hero_hint_1")
                       + space.tr("hero_hint_2")
                 font.pixelSize: 22
-                color: "#4A4A46"
+                color: "#000000"
                 wrapMode: Text.WordWrap
             }
             Repeater {
@@ -487,7 +487,7 @@ Item {
                         visible: _rmhHeroCell.rowPreview === ""
                         text: space.tr("hero_auto_hint")
                         font.pixelSize: 22
-                        color: "#6B6B66"
+                        color: "#000000"
                         wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignHCenter
                     }
@@ -534,7 +534,7 @@ Item {
                     visible: root._rmhSelectedFont !== root._rmhAppliedFont
                     text: space.tr("confirm_font") + root._rmhSelectedFont
                     font.pixelSize: 20
-                    color: "#444444"
+                    color: "#000000"
                     wrapMode: Text.WordWrap
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
@@ -543,7 +543,7 @@ Item {
                     visible: root._rmhSelectedScreen !== root._rmhAppliedScreen
                     text: space.tr("confirm_wallpaper") + root._rmhSelectedScreen
                     font.pixelSize: 20
-                    color: "#444444"
+                    color: "#000000"
                     wrapMode: Text.WordWrap
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
