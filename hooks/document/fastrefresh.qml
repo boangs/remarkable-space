@@ -10,7 +10,7 @@
 // 拆之前先把档位改回 Content 再等一拍销毁: 直接销毁时屏幕驱动里那块快刷标记可能留着不清。
 //
 // 下面再一行「点击翻页」开关 (同样按文档记住, 存同一个文件的 "tap": {"<文档 id>": true}; 默认关):
-// 手指点屏幕左 1/3 上一页、右 1/3 下一页, 中间留给系统 (呼出工具栏)。只认触屏 (笔点不算),
+// 手指点屏幕左边 10% 上一页、右边 10% 下一页, 中间留给系统 (呼出工具栏)。只认触屏 (笔点不算),
 // 笔在感应范围内或刚离开 1 秒内不翻, 顶部工具栏那条和弹出菜单开着时不翻。
 // TapHandler 是被动监听, 系统的滑动翻页 / 双指缩放照常。手掌偶尔会被当成点击 (界面层分不清手掌,
 // 芯片报的 PALM 类型到 Qt 这层丢了), 2026-10-27 和用户商定先这样。
@@ -282,7 +282,7 @@ Item {
     }
     function tapTurn(p) {
         if (!tapOn || !docView) return
-        var dir = p.x < width / 3 ? -1 : (p.x > width * 2 / 3 ? 1 : 0)
+        var dir = p.x < width * 0.1 ? -1 : (p.x > width * 0.9 ? 1 : 0)
         if (dir === 0 || p.y < 100) return                          // 中间 / 顶部工具栏那条留给系统
         if (penClose || Date.now() - penLeftAt < 1000) return       // 拿着笔
         if (docView.subDialogOpen || menuOpen(docView, 0)) return   // 弹窗 / 菜单开着
