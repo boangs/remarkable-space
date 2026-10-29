@@ -1,0 +1,17 @@
+[Unit]
+Description=rmkit-cn OTA hook 重启前补跑 (在原厂切分区之前把钩子注入新固件)
+# 定时器之外的兜底: 用户点「重启并更新」时, 原厂 rm-apply-ota 在关机路上切分区。
+# 这里排在它前面跑一次 ota-watch.sh: 新固件已落盘却还没注入的, 关机前补上。
+# 关机路上 /home 可能已经卸了 —— 那时脚本不存在, Condition 不满足直接跳过, 不挡关机。
+DefaultDependencies=no
+Before=rm-apply-ota.service reboot.target
+ConditionPathExists=/home/root/rmkit-cn/bin/ota-watch.sh
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /home/root/rmkit-cn/bin/ota-watch.sh
+RemainAfterExit=true
+TimeoutStartSec=45
+
+[Install]
+WantedBy=reboot.target

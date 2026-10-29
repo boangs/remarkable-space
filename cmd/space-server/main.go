@@ -127,6 +127,7 @@ func main() {
 	server.StartAudioDaemon()         // 蓝牙音频 (装了 rmkit-audio 才生效)
 	srv.Space().AutoStart()           // 「空间」里声明了 autostart 的应用后台
 	srv.Space().AutoInstallDefaults() // 原来空间自带、后来拆成商店应用的功能 (AI): 更新上来补装一次
+	srv.Space().EnsureOTAHook()       // 底座的 OTA 钩子 2026-10-29 改过, 已装好的机器在这里换成新的
 
 	fmt.Printf("space-server listening on %s\n", *listen)
 	fmt.Printf("  static = %s\n  fonts  = %s\n  screens = %s\n  fonts-active = %s\n  xochitl-conf = %s\n",
