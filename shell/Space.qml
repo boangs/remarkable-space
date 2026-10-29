@@ -1986,7 +1986,6 @@ Rectangle {
                             source: space.kitDir + "/icons/" + tabItem.modelData.icon + ".svg"
                             fillMode: Image.PreserveAspectFit
                             sourceSize.width: width; sourceSize.height: width
-                            opacity: tabItem.active ? 1 : 0.55
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
