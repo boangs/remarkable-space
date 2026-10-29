@@ -1,10 +1,11 @@
 // 文档「…」菜单里「启用形状」下面加一行「刷新」三档: 高清 / 快刷 / 流畅, 只管当前这份文档,
-// 按文档记住 (存在空间数据区 shell/fastrefresh.json: {"docs": {"<文档 id>": "ui" | "pen"}}; 高清 = 不记)。
-// 名字和空间设置里的刷新档位一致: 快刷 = UI, 流畅 = Pen (带彩色的快刷)。2026-10-27 真机六档都试过,
-// Mono / Animation / Overlay 不要 (Overlay 同 Pen, Animation 只有黑白)。
+// 按文档记住 (存在空间数据区 shell/fastrefresh.json: {"docs": {"<文档 id>": "ui" | "overlay"}}; 高清 = 不记)。
+// 快刷 = UI, 流畅 = Overlay。2026-10-27 真机六档都试过, Mono / Animation 不要 (Animation 只有黑白);
+// 流畅原来是 Pen, 2026-10-29 用户对比后改成 Overlay: 翻页、开关菜单时两者差不多, Overlay 残影清得更干净。
+// 以前存的 "pen" 当 Overlay 读。
 //
 // 系统给文档页标的是 Content (完整灰阶, 慢、翻页闪) —— 也就是「高清」, 不用挂东西;
-// 快刷 (UI) / 流畅 (Pen) 是整屏常驻一个 ScreenModeItem 盖过去。几何必须常驻不变
+// 快刷 (UI) / 流畅 (Overlay) 是整屏常驻一个 ScreenModeItem 盖过去。几何必须常驻不变
 // (EPScreenModeMap 每变一次几何就整屏重合成): 快刷↔流畅只改 mode, 只有回高清时才拆。
 // 拆之前先把档位改回 Content 再等一拍销毁: 直接销毁时屏幕驱动里那块快刷标记可能留着不清。
 //
@@ -32,12 +33,13 @@ Item {
     readonly property string docId: docView && docView.document ? ("" + docView.document.id) : ""
     property var docs: ({})
     property bool loaded: false
-    // 当前文档的档位: content (高清, 系统默认) / ui (快刷) / pen (流畅)
+    // 当前文档的档位: content (高清, 系统默认) / ui (快刷) / overlay (流畅)
     readonly property string mode: {
         if (!loaded || !docId) return "content"
         var m = docs[docId]
         if (m === true) return "ui"                     // 早期试验版存的是 true
-        return (m === "ui" || m === "pen") ? m : "content"
+        if (m === "pen") return "overlay"               // 2026-10-29 以前流畅是 Pen
+        return (m === "ui" || m === "overlay") ? m : "content"
     }
 
     property var taps: ({})
@@ -109,11 +111,11 @@ Item {
                 modeItem = Qt.createQmlObject(
                     "import QtQuick; import xofm.libs.epaper; ScreenModeItem { anchors.fill: parent;"
                     + " readonly property int mContent: ScreenModeItem.Content;"
-                    + " readonly property int mUI: ScreenModeItem.UI; readonly property int mPen: ScreenModeItem.Pen }",
+                    + " readonly property int mUI: ScreenModeItem.UI; readonly property int mOverlay: ScreenModeItem.Overlay }",
                     root, "fastRefreshMode")
             } catch (e) { log("ScreenModeItem 不可用: " + e); return }
         }
-        modeItem.mode = mode === "pen" ? modeItem.mPen : modeItem.mUI
+        modeItem.mode = mode === "overlay" ? modeItem.mOverlay : modeItem.mUI
     }
     onModeChanged: apply()
 
@@ -192,7 +194,7 @@ Item {
                 Row {
                     anchors.fill: parent
                     Repeater {
-                        model: ["content", "ui", "pen"]   // 高清 (图片) / 快刷 (风) / 流畅 (闪电)
+                        model: ["content", "ui", "overlay"]   // 高清 (图片) / 快刷 (风) / 流畅 (闪电)
                         Item {
                             required property string modelData
                             readonly property bool sel: root.mode === modelData
@@ -207,7 +209,7 @@ Item {
                                 width: 32; height: 32
                                 sourceSize.width: 32; sourceSize.height: 32
                                 // 改了图标就把 v 加一 (图片按地址缓存)
-                                source: "refresh-icons/" + parent.modelData + (parent.sel ? "-on" : "") + ".svg?v=6"
+                                source: "refresh-icons/" + parent.modelData + (parent.sel ? "-on" : "") + ".svg?v=7"
                             }
                             MouseArea {
                                 anchors.fill: parent
