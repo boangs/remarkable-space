@@ -44,6 +44,12 @@ for f in /tmp/rmkit-cn-systemd-staging/*.service /tmp/rmkit-cn-systemd-staging/*
       ln -sf /etc/systemd/system/$base /etc/systemd/system/multi-user.target.wants/$base
       ln -sf /etc/systemd/system/$base /tmp/lc/etc/systemd/system/multi-user.target.wants/$base
       ;;
+    rmkit-cn-ota-reboot.service)
+      # 挂在 reboot.target 上 (重启前补跑 OTA 钩子), 不进 multi-user
+      mkdir -p /etc/systemd/system/reboot.target.wants /tmp/lc/etc/systemd/system/reboot.target.wants
+      ln -sf /etc/systemd/system/$base /etc/systemd/system/reboot.target.wants/$base
+      ln -sf /etc/systemd/system/$base /tmp/lc/etc/systemd/system/reboot.target.wants/$base
+      ;;
     rmkit-cn-rm2-reenable.service)
       # 仅 rm2 (armv7) 启用: rm2 的 /home 挂载 After=xochitl.service, 冷启动注入
       # 落空需本单元重启一次恢复。其它机型 /home 早于 xochitl, 用不上 (文件仍拷入

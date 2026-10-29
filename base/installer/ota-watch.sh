@@ -103,6 +103,10 @@ for f in "$SRC_ETC"/rmkit-cn-*.service "$SRC_ETC"/rmkit-cn-*.path "$SRC_ETC"/rmk
     if [ -e "$SRC_ETC/multi-user.target.wants/$base" ] || [ -e "/etc/systemd/system/timers.target.wants/$base" ]; then
         ln -sf "../$base" "$DST_ETC/multi-user.target.wants/$base" || FAIL=1
     fi
+    # 重启前补跑 (rmkit-cn-ota-reboot.service) 挂在 reboot.target 上, 新系统里也要有
+    if [ -e "$SRC_ETC/reboot.target.wants/$base" ]; then
+        mkdir -p "$DST_ETC/reboot.target.wants" && ln -sf "../$base" "$DST_ETC/reboot.target.wants/$base" || FAIL=1
+    fi
 done
 
 # 空间 (后加的, 原清单漏了它: 2026-10-13 实测 3.28→3.29 升级后空间后端消失)

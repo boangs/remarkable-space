@@ -1,9 +1,14 @@
 [Unit]
 Description=rmkit-cn OTA 监控定时器 (检测官方更新写入 inactive slot)
 
+# 按墙上时钟每 5 分钟 (OnCalendar), 不用 OnUnitActiveSec: 后者按单调时钟计时, 设备休眠时不走。
+# 2026-10-29 Move 升 3.30: 新固件 15:23 写完, 之后一直浅睡, 单调时钟到 16:59 重启都没走满 5 分钟,
+# 一次没检查 → 新系统里没有钩子, 空间没起来。墙钟定时器错过的那一次在醒来时立刻补跑。
+# 重启前另有 rmkit-cn-ota-reboot.service 兜底。
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=5min
+OnCalendar=*:0/5
+AccuracySec=30s
 
 [Install]
 WantedBy=multi-user.target

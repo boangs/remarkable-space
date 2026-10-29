@@ -94,15 +94,33 @@ ConditionPathExists=$RMKIT_DIR/bin/ota-watch.sh
 Type=oneshot
 ExecStart=/bin/sh $RMKIT_DIR/bin/ota-watch.sh"
 
+# 墙钟定时 (OnCalendar): 休眠时单调时钟不走, OnUnitActiveSec 会一直等不到 (内容同 systemd/rmkit-cn-ota.timer)
 OTA_TIMER="[Unit]
 Description=rmkit-cn OTA 监控定时器 (检测官方更新写入 inactive slot)
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=5min
+OnCalendar=*:0/5
+AccuracySec=30s
 
 [Install]
 WantedBy=multi-user.target"
+
+# 重启前补跑一次 (原厂 rm-apply-ota 切分区之前; 内容同 systemd/rmkit-cn-ota-reboot.service)
+OTA_REBOOT="[Unit]
+Description=rmkit-cn OTA hook 重启前补跑 (在原厂切分区之前把钩子注入新固件)
+DefaultDependencies=no
+Before=rm-apply-ota.service reboot.target
+ConditionPathExists=$RMKIT_DIR/bin/ota-watch.sh
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh $RMKIT_DIR/bin/ota-watch.sh
+RemainAfterExit=true
+TimeoutStartSec=45
+
+[Install]
+WantedBy=reboot.target"
 
 # ─── 写入配置文件 (按架构选择方式) ──────────────────────────────
 mount -o remount,rw / 2>/dev/null || true
@@ -156,6 +174,13 @@ install_both "$VERSION_SVC"  "/etc/systemd/system/rmkit-cn-version.service"
 install_both "$VERSION_PATH" "/etc/systemd/system/rmkit-cn-version.path"
 install_both "$OTA_SVC"      "/etc/systemd/system/rmkit-cn-ota.service"
 install_both "$OTA_TIMER"    "/etc/systemd/system/rmkit-cn-ota.timer"
+install_both "$OTA_REBOOT"   "/etc/systemd/system/rmkit-cn-ota-reboot.service"
+# 重启前补跑挂在 reboot.target 上: 两层都建 wants 链接 (aarch64 的 /etc 是 tmpfs overlay)
+for d in /etc /tmp/rmkit_lower/etc; do
+    [ -d "$d/systemd/system" ] || continue
+    mkdir -p "$d/systemd/system/reboot.target.wants"
+    ln -sf /etc/systemd/system/rmkit-cn-ota-reboot.service "$d/systemd/system/reboot.target.wants/rmkit-cn-ota-reboot.service"
+done
 
 # 建自启 symlink —— 必须在 bind mount 还挂着的时候做
 enable_both rmkit-cn-upload.service rmkit-cn-ime-http.service \
