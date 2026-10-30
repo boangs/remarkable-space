@@ -267,7 +267,7 @@ func NewPlan(info probe.Info, b *bundle.Bundle) (*Plan, error) {
 // Run 执行计划。log 收到的每一行都同时进本地审计日志。
 func Run(ctx context.Context, c *sshx.Client, b *bundle.Bundle, p *Plan, log sshx.Logger) error {
 	if p.NeedXovi { // install.sh 186-213
-		log(i18n.T("设备无 xovi, 自动部署...", "No xovi on the device, deploying it..."))
+		log(i18n.T("设备无 xovi 或 xovi 不完整, 自动部署...", "xovi missing or incomplete on the device, deploying it..."))
 		for _, s := range []string{p.xoviTar, "vendor/xovi/xochitl-xovi"} {
 			rc, err := b.Open(s)
 			if err != nil {
@@ -280,9 +280,16 @@ func Run(ctx context.Context, c *sshx.Client, b *bundle.Bundle, p *Plan, log ssh
 			}
 		}
 		if err := c.RunLogged(ctx, fmt.Sprintf(`set -e
-cd /home/root
+# 设备上可能已有别的工具装的不完整 xovi: 先解到暂存目录, 再逐个 mv 覆盖 (rename 不改正在被映射的 .so),
+# 它自己的其他扩展不动
+S=/home/root/.xovi-staging
+rm -rf $S && mkdir -p $S && cd $S
 tar -xzf /tmp/%[1]s --no-same-owner --no-same-permissions
-cp /tmp/xochitl-xovi /home/root/xovi/xochitl-xovi
+cd $S/xovi
+find . -type d | while read d; do mkdir -p "/home/root/xovi/$d"; done
+find . ! -type d | while read f; do mv -f "$f" "/home/root/xovi/$f"; done
+cd /home/root && rm -rf $S
+cp /tmp/xochitl-xovi /home/root/xovi/xochitl-xovi.new && mv -f /home/root/xovi/xochitl-xovi.new /home/root/xovi/xochitl-xovi
 chmod +x /home/root/xovi/xochitl-xovi
 chown -R root:root /home/root/xovi
 rm /tmp/%[1]s /tmp/xochitl-xovi

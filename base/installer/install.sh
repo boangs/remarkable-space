@@ -193,7 +193,8 @@ fi
 # 缺失时不能直接装 drop-in (xochitl crash → A/B 回滚)。先无条件确保 xovi 在位。
 echo ""
 echo "正在检查 xovi..."
-HAVE_XOVI=$(ssh "$DEVICE_USER@$DEVICE_IP" "[ -f /home/root/xovi/xovi.so ] && echo yes || echo no")
+# 还要有 qt-resource-rebuilder: 别的工具装的 xovi 可能没它, hashtab 生不出来 (同助手 probe.go)
+HAVE_XOVI=$(ssh "$DEVICE_USER@$DEVICE_IP" "[ -f /home/root/xovi/xovi.so ] && [ -f /home/root/xovi/extensions.d/qt-resource-rebuilder.so ] && echo yes || echo no")
 if [ "$HAVE_XOVI" = "no" ]; then
   XOVI_TARBALL="$SCRIPT_DIR/vendor/xovi/xovi-${XOVI_ARCH}.tar.gz"
   XOVI_LAUNCHER="$SCRIPT_DIR/vendor/xovi/xochitl-xovi"

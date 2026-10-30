@@ -66,7 +66,9 @@ echo secboot=$(cat /sys/devices/platform/lpgpr/secboot 2>/dev/null)
 grep -q " atomics" /proc/cpuinfo 2>/dev/null && echo lse=1
 echo rootfree=$(df -kP / 2>/dev/null | awk 'END{print $4}')
 echo homefree=$(df -kP /home 2>/dev/null | awk 'END{print $4}')
-[ -f /home/root/xovi/xovi.so ] && echo xovi=1
+# 只有 xovi.so 不够: 生成 hashtab 靠 qt-resource-rebuilder 扩展。别的工具 (rmtool 等) 装的 xovi
+# 可能没启用它, 当成"有 xovi"跳过部署 → hashtab 永远生不出来, 安装回退 (2026-10-30 客户 Move)
+[ -f /home/root/xovi/xovi.so ] && [ -f /home/root/xovi/extensions.d/qt-resource-rebuilder.so ] && echo xovi=1
 [ -d /home/root/rmkit-cn/bin ] && echo rmkit=1
 echo rmkitfw=$(cat /home/root/rmkit-cn/.last_fw_version 2>/dev/null)
 echo spacever=$(cat /home/root/rmkit-cn/.space_version 2>/dev/null)
