@@ -221,7 +221,7 @@ function addAppSlots(slots) {
     anchor.parentNode.insertBefore(panel, anchor.nextSibling);
   });
 }
-fetch('/space/uploads').then(r => r.ok ? r.json() : []).catch(() => []).then(slots => { addAppSlots(slots); initPage(); });
+fetch('/space/uploads' + window.location.search).then(r => r.ok ? r.json() : []).catch(() => []).then(slots => { addAppSlots(slots); initPage(); });
 
 function initPage() {
   const tabs = document.querySelectorAll('.tab');

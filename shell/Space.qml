@@ -894,6 +894,14 @@ Rectangle {
                     space, "space_appload_launcher")
             } catch (e) { helper = null }
             if (helper) {
+                // 商店安装新应用后, AppLoad 还持有开机时的列表; 启动前重扫, 第一次点开也能识别
+                try {
+                    var library = Qt.createQmlObject(
+                        'import QtQuick;\nimport net.asivery.AppLoad;\nAppLoadLibrary { }',
+                        space, "space_appload_library")
+                    library.reloadList()
+                    library.destroy()
+                } catch (e) { console.warn("[space] AppLoad 列表刷新失败: " + e) }
                 space.visible = false
                 helper.go(l.id)
                 helper.destroy()

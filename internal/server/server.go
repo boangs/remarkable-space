@@ -30,8 +30,8 @@ const (
 	MaxUploadBytes = 200 << 20 // 200 MiB
 )
 
-// LoadWait 上传后等外壳把文件通知进文件库的时间。外壳开着时通常 1 秒内就回报;
-// 等不到也不算失败 —— 文件已在磁盘上, 下次打开空间会补上。(变量: 测试里调短)
+// LoadWait 上传后等常驻文件库桥把文件通知进文件库的时间, 通常 1 秒内就回报;
+// 等不到也不算失败 —— 文件已在磁盘上, 常驻桥会继续处理。(变量: 测试里调短)
 var LoadWait = 8 * time.Second
 
 var (
@@ -132,36 +132,34 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /qr-info", s.qrInfo)
 	mux.HandleFunc("GET /qr.png", s.qrPNG)
 
-	// 扫码上传只在「空间」开着时可用: 文档热导入得由空间外壳通知 xochitl, 空间关了它就做不到;
-	// 其余几类一并关上, 免得手机上一半能传一半不能, 让人摸不着头脑。
+	// 上传服务常驻, 不要求打开空间。文档由常驻文件库桥立即交给系统导入。
 	mux.HandleFunc("GET /fonts", s.listFonts)
-	mux.HandleFunc("POST /fonts", s.needSpace(s.uploadFont))
-	mux.HandleFunc("DELETE /fonts/{name}", s.needSpace(s.deleteFont))
+	mux.HandleFunc("POST /fonts", s.uploadFont)
+	mux.HandleFunc("DELETE /fonts/{name}", s.deleteFont)
 	mux.HandleFunc("GET /fonts/active", s.activeFont)
 	mux.HandleFunc("POST /fonts/{name}/apply", s.applyFont)
 
 	mux.HandleFunc("GET /screens", s.listScreens)
-	mux.HandleFunc("POST /screens", s.needSpace(s.uploadScreen))
+	mux.HandleFunc("POST /screens", s.uploadScreen)
 	mux.HandleFunc("GET /hero", s.listHero)
-	mux.HandleFunc("POST /hero", s.needSpace(s.uploadHero))
+	mux.HandleFunc("POST /hero", s.uploadHero)
 	mux.HandleFunc("GET /hero/{name}", s.previewHero)
-	mux.HandleFunc("DELETE /hero/{name}", s.needSpace(s.deleteHero))
+	mux.HandleFunc("DELETE /hero/{name}", s.deleteHero)
 	mux.HandleFunc("GET /music", s.listMusic)
-	mux.HandleFunc("POST /music", s.needSpace(s.uploadMusic))
-	mux.HandleFunc("DELETE /music/{name}", s.needSpace(s.deleteMusic))
-	mux.HandleFunc("DELETE /screens/{name}", s.needSpace(s.deleteScreen))
+	mux.HandleFunc("POST /music", s.uploadMusic)
+	mux.HandleFunc("DELETE /music/{name}", s.deleteMusic)
+	mux.HandleFunc("DELETE /screens/{name}", s.deleteScreen)
 	mux.HandleFunc("GET /screens/active", s.activeScreen)
 	mux.HandleFunc("POST /screens/{name}/apply", s.applyScreen)
 	mux.HandleFunc("GET /screens/{name}/preview", s.previewScreen)
 
-	mux.HandleFunc("POST /documents", s.needSpace(s.uploadDocument))
+	mux.HandleFunc("POST /documents", s.uploadDocument)
 	s.lib.Mount(mux) // 空间外壳取「通知文件库」的活: /space/library/*
 
 	mux.HandleFunc("GET /screenshot", s.screenshotPNG) // 排版核对用: 当前屏幕 PNG
 
 	// 「空间」启动台: 应用注册表 / 绿色安装 / 应用后台托管 (internal/space, 与具体应用无关)
 	if s.space != nil {
-		s.space.UploadGate = s.lib.Queue.Active
 		s.space.Mount(mux)
 	}
 
@@ -310,36 +308,8 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) qrPage(w http.ResponseWriter, r *http.Request) {
-	if !s.lib.Queue.Active() {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(w, spaceClosedPage)
-		return
-	}
 	http.ServeFile(w, r, filepath.Join(s.cfg.StaticDir, "qr.html"))
 }
-
-// needSpace: 「空间」没开着就拒绝。手机扫码页上看到的是这句提示。
-func (s *Server) needSpace(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.lib.Queue.Active() {
-			httpError(w, http.StatusServiceUnavailable, spaceClosedText)
-			return
-		}
-		h(w, r)
-	}
-}
-
-const spaceClosedText = "请先在 reMarkable 上打开「空间」, 再上传"
-
-const spaceClosedPage = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>上传到 reMarkable</title>
-<style>body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:48px 24px;color:#111;background:#fff}
-h1{font-size:22px;margin:0 0 12px}p{font-size:16px;line-height:1.6;color:#444;margin:0 0 20px}
-a{display:inline-block;padding:12px 20px;border:2px solid #111;border-radius:10px;color:#111;text-decoration:none}</style>
-</head><body><h1>「空间」没有打开</h1>
-<p>扫码上传只在 reMarkable 上打开「空间」时可用。请在设备侧栏点「空间」, 再刷新这个页面。</p>
-<a href="/qr">刷新</a></body></html>`
 
 // ---- QR ----
 
@@ -602,7 +572,7 @@ func (s *Server) uploadDocument(w http.ResponseWriter, r *http.Request) {
 	res, ok := s.lib.Queue.Wait(e.ID, LoadWait)
 	loaded := ok && res.OK
 	if !loaded {
-		fmt.Fprintf(os.Stderr, "文档 %s 已写入, 文件库尚未加载 (回报=%v %+v), 下次打开空间补上\n", e.ID, ok, res)
+		fmt.Fprintf(os.Stderr, "文档 %s 已写入, 文件库尚未加载 (回报=%v %+v), 常驻桥将继续处理\n", e.ID, ok, res)
 	}
 	size := header.Size
 	writeJSON(w, http.StatusOK, map[string]any{

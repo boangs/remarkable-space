@@ -21,15 +21,16 @@ import (
 // 转给应用后台的 path。list 可选: GET list 返回 [{name, label, size}] 作为页面上的文件列表,
 // DELETE list/{name} 删一项。应用必须带后台 (manifest.service)。
 type Upload struct {
-	ID       string   `json:"id"`
-	Label    string   `json:"label"`
-	LabelEn  string   `json:"label_en,omitempty"`
-	Accept   []string `json:"accept"`
-	Path     string   `json:"path"`
-	List     string   `json:"list,omitempty"`
-	Hint     string   `json:"hint,omitempty"`
-	HintEn   string   `json:"hint_en,omitempty"`
-	Multiple bool     `json:"multiple,omitempty"`
+	ID          string   `json:"id"`
+	Label       string   `json:"label"`
+	LabelEn     string   `json:"label_en,omitempty"`
+	Accept      []string `json:"accept"`
+	Path        string   `json:"path"`
+	List        string   `json:"list,omitempty"`
+	Hint        string   `json:"hint,omitempty"`
+	HintEn      string   `json:"hint_en,omitempty"`
+	Multiple    bool     `json:"multiple,omitempty"`
+	FocusedOnly bool     `json:"focused_only,omitempty"` // 只在自己的专属二维码页面显示, 不进公共上传页
 }
 
 var (
@@ -82,14 +83,17 @@ type UploadSlot struct {
 	Upload
 }
 
-// uploadSlots 已装、本机能跑的应用登记的上传标签页
-func (h *Handler) uploadSlots() []UploadSlot {
+// uploadSlots 已装、本机能跑的应用登记的上传标签页。专属上传项只在对应的二维码页面出现。
+func (h *Handler) uploadSlots(focus string) []UploadSlot {
 	out := []UploadSlot{}
 	for _, a := range h.Reg.List() {
 		if a.Error != "" || a.Service == nil {
 			continue
 		}
 		for _, u := range a.Uploads {
+			if u.FocusedOnly && focus != a.ID+"."+u.ID {
+				continue
+			}
 			out = append(out, UploadSlot{App: a.ID, AppName: a.Name, AppNameEn: a.NameEn, Upload: u})
 		}
 	}
@@ -114,10 +118,6 @@ const maxAppUpload = 300 << 20
 
 // uploadProxy 把扫码页的请求转给应用后台: POST → path, GET → list, DELETE …/{name} → list/{name}
 func (h *Handler) uploadProxy(w http.ResponseWriter, r *http.Request) {
-	if h.UploadGate != nil && !h.UploadGate() {
-		fail(w, http.StatusServiceUnavailable, "请先在 reMarkable 上打开「空间」, 再上传")
-		return
-	}
 	app, u, ok := h.findUpload(r.PathValue("id"), r.PathValue("slot"))
 	if !ok {
 		fail(w, http.StatusNotFound, "没有这个上传项 (应用没装或不收文件)")

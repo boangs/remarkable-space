@@ -3,15 +3,13 @@
 // 分两步, 只有第一步在本进程里:
 //  1. 把文件写进 xochitl 数据目录: <uuid>.<ext> + .content + .metadata (最后写 metadata)。
 //  2. 通知 xochitl 的文件库加载这个 uuid —— 要调它内存里 Library 对象的 requestLoadEntry,
-//     外部进程够不着 (xochitl 没有 D-Bus 服务, 也不监听目录), 只能由跑在 xochitl 里的
-//     「空间」外壳来调。所以第二步是排进队列, 外壳打开时长连接取走、调完回报。
+//     外部进程够不着 (xochitl 没有 D-Bus 服务, 也不监听目录), 由跑在 xochitl 里的常驻
+//     hooks/root/library.qml 长连接取走、调完回报; 不依赖空间页面是否打开。
 //
-// 3.29 起 QML 拿到的文件库换成了只读的 LibraryFacade, 没有 requestLoadEntry 了。外壳发现
+// 3.29 起 QML 拿到的文件库换成了只读的 LibraryFacade, 没有 requestLoadEntry 了。常驻桥发现
 // 这一点就报「导入器模式」, 文档改走系统自己的导入器 DocumentImporter.importFromUrls
-// (就是 USB 网页传文件用的那个): 本包把文件放进暂存目录, 用显示名当文件名, 外壳让导入器
+// (就是 USB 网页传文件用的那个): 本包把文件放进暂存目录, 用显示名当文件名, 常驻桥让导入器
 // 复制进文件库, 暂存文件过 StagingKeep 删掉。3.28 及以前照旧走第一种, 行为不变。
-//
-// 因此本包同时记录「空间开着没有」: 外壳在线才接受上传 (Active), 空间关了上传就该关。
 //
 // 为什么不用 librarian: 它在 3.28 上找不到改了名的 Library 单例, 无限重试漏堆,
 // 一周把 xochitl 撑到 1.6GB。这里不往 xochitl 里塞任何原生代码。

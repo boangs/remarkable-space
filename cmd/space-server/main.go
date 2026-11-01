@@ -133,8 +133,8 @@ func main() {
 	fmt.Printf("  static = %s\n  fonts  = %s\n  screens = %s\n  fonts-active = %s\n  xochitl-conf = %s\n",
 		*staticDir, *fontsDir, *screensDir, *fontsActiveDir, *xochitlConf)
 
-	// 本机端口一直开着 (AI 按钮、空间外壳、应用后台都在设备上); 对外的两类端口另外管:
-	// USB 网段常开, 局域网 (扫码上传) 只在空间开着时开 —— 见 internal/server/lan.go。
+	// 本机端口一直开着 (AI 按钮、空间外壳、应用后台都在设备上); USB 和局域网扫码上传也常驻,
+	// 不要求空间页面打开 —— 见 internal/server/lan.go。
 	// 装好的 systemd 单元传的是 -listen 0.0.0.0:8080: 这里把"所有地址"收窄成本机,
 	// 对外那部分交给 ServeExternal, 免得改单元文件 (改 /etc 有变砖风险)。
 	host, portStr, err := net.SplitHostPort(*listen)

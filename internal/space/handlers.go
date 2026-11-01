@@ -51,9 +51,6 @@ type Handler struct {
 	// 自建商店只要摆一个 JSON 文件就能用, 不必实现握手。
 	StoreAPI string
 
-	// UploadGate 扫码上传页的总闸 (「空间」没开着就不收), 由 upload-server 设; nil = 不拦
-	UploadGate func() bool
-
 	auth *StoreAuth
 
 	storeMu   sync.Mutex
@@ -118,7 +115,9 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("POST /space/apps/{id}/service/stop", h.serviceStop)
 	mux.HandleFunc("GET /space/apps/{id}/data/{key}", h.dataGet)
 	mux.HandleFunc("PUT /space/apps/{id}/data/{key}", h.dataPut)
-	mux.HandleFunc("GET /space/uploads", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, http.StatusOK, h.uploadSlots()) })
+	mux.HandleFunc("GET /space/uploads", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, h.uploadSlots(r.URL.Query().Get("focus")))
+	})
 	mux.HandleFunc("POST /space/apps/{id}/upload/{slot}", h.uploadProxy)
 	mux.HandleFunc("GET /space/apps/{id}/upload/{slot}", h.uploadProxy)
 	mux.HandleFunc("DELETE /space/apps/{id}/upload/{slot}/{name}", h.uploadProxy)

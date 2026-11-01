@@ -143,7 +143,7 @@ func TestUploadScreenWrongFormat(t *testing.T) {
 	}
 }
 
-// ---- /documents (xolib 热导入, 空间开着才收) ----
+// ---- /documents (xolib 常驻文件库桥热导入) ----
 
 // fakeShell 扮演 xochitl 里的空间外壳: 长连接取活, 回报 ok。
 func fakeShell(t *testing.T, srv *Server, ok bool) {
@@ -218,31 +218,25 @@ func TestUploadDocumentRejectsExe(t *testing.T) {
 	}
 }
 
-// 空间关着: 上传一律拒绝, 扫码页显示提示
-func TestUploadsNeedSpaceOpen(t *testing.T) {
+func TestUploadsWorkWithoutSpaceOpen(t *testing.T) {
 	srv, h, _ := newTestServer(t)
+	fakeShell(t, srv, true)
 	srv.lib.Queue.Close()
-	if rr := postDoc(t, h, "a.pdf", []byte("%PDF")); rr.Code != 503 || !strings.Contains(rr.Body.String(), "空间") {
-		t.Fatalf("%d %s", rr.Code, rr.Body)
+	if rr := postDoc(t, h, "a.pdf", []byte("%PDF")); rr.Code != 200 {
+		t.Fatalf("文档上传: %d %s", rr.Code, rr.Body)
 	}
 	body, ct := multipartUpload(t, "file", "a.ttf", "font/ttf", []byte("x"))
 	req := httptest.NewRequest("POST", "/fonts", body)
 	req.Header.Set("Content-Type", ct)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
-	if rr.Code != 503 {
-		t.Fatalf("字体上传也应拦: %d", rr.Code)
+	if rr.Code != 200 {
+		t.Fatalf("字体上传: %d", rr.Code)
 	}
 	rr = httptest.NewRecorder()
 	h.ServeHTTP(rr, httptest.NewRequest("GET", "/qr", nil))
-	if rr.Code != 503 || !strings.Contains(rr.Body.String(), "没有打开") {
-		t.Fatalf("扫码页: %d", rr.Code)
-	}
-	// 列表接口照常 (只读, 空间里的应用也在用)
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, httptest.NewRequest("GET", "/fonts", nil))
 	if rr.Code != 200 {
-		t.Fatalf("列表: %d", rr.Code)
+		t.Fatalf("扫码页: %d", rr.Code)
 	}
 }
 
@@ -257,6 +251,13 @@ func TestQRPage(t *testing.T) {
 	body, _ := io.ReadAll(rr.Body)
 	if !bytes.Contains(body, []byte("上传到 reMarkable")) {
 		t.Errorf("qr.html content missing")
+	}
+	page, err := os.ReadFile("../../static/qr.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(page, []byte("fetch('/space/uploads' + window.location.search)")) {
+		t.Error("上传列表必须保留专属二维码的 focus 参数")
 	}
 }
 

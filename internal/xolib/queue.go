@@ -48,8 +48,8 @@ type Result struct {
 // 取完立刻再连, 所以正常开着时间隔接近 0; 留 35 秒余量兜住网络抖动。
 const ActiveWindow = 35 * time.Second
 
-// Queue 是待通知队列 + 外壳在线状态。待通知的条目落盘: 空间在文件写完、通知之前被关掉,
-// 或 space-server 中途重启, 下次打开空间照样补上, 不会出现「文件在磁盘上却永远看不到」。
+// Queue 是待通知队列 + 外壳在线状态。待通知的条目落盘: 常驻桥在文件写完、通知之前退出,
+// 或 space-server 中途重启, 恢复后照样补上, 不会出现「文件在磁盘上却永远看不到」。
 type Queue struct {
 	mu       sync.Mutex
 	file     string
@@ -88,7 +88,7 @@ func (q *Queue) Enqueue(j Job) {
 // 失败的由 Done 延后重排。
 //
 // presence: 这个长连接算不算「空间开着」。外壳的算; 注入库常驻顶层的文件库桥 (hooks/root/library.qml)
-// 一直挂着, 不算 —— 否则扫码上传永远开着 (它只该在用户打开空间时开)。
+// 一直挂着, 不算 —— 空间页面状态只用于界面逻辑, 不影响常驻扫码上传。
 func (q *Queue) Next(ctx context.Context, wait time.Duration, presence bool) []Job {
 	q.mu.Lock()
 	if presence {

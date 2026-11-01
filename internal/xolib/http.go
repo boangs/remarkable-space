@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-// LoadWait 建条目后等外壳回报「文件库已加载」的时间。等不到不算失败 (文件在盘上, 下次打开空间补上)。
+// LoadWait 建条目后等常驻文件库桥回报「文件库已加载」的时间。等不到不算失败 (文件在盘上, 常驻桥会继续处理)。
 var LoadWait = 8 * time.Second
 
-// Mount 挂外壳用的三个接口:
+// Mount 挂文件库桥与外壳用的接口:
 //
 //	GET  /space/library/next?wait=25  长连接取活, 没活时等到超时返回 204 (role=bridge: 常驻桥, 不算空间开着)
 //	POST /space/library/done          回报一条结果
-//	POST /space/library/bye           外壳关闭 (之后上传一律拒绝)
-//	GET  /space/library/status        空间开着没有 / 还有几条没通知 (扫码页用)
+//	POST /space/library/bye           外壳关闭
+//	GET  /space/library/status        空间开着没有 / 还有几条没通知
 //	POST /space/library/folder        {name, parent} 建文件夹
 //	POST /space/library/notebook      {name, parent, template} 建一页的空白笔记本
 //

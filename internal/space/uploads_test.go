@@ -1,6 +1,9 @@
 package space
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestValidateUploads(t *testing.T) {
 	ok := Manifest{ID: "flashcard", Name: "闪卡", Version: "1.0.0", Entry: "main.qml",
@@ -25,5 +28,29 @@ func TestValidateUploads(t *testing.T) {
 		if err := m.Validate(); err == nil {
 			t.Errorf("第 %d 个坏登记没被拒", i)
 		}
+	}
+}
+
+func TestFocusedOnlyUploadSlot(t *testing.T) {
+	tmp := t.TempDir()
+	r := &Registry{BuiltinDir: filepath.Join(tmp, "builtin"), UserDir: filepath.Join(tmp, "apps"), DataDir: filepath.Join(tmp, "data"), Arch: "armv7"}
+	writeApp(t, r.UserDir, "stickers", `{"id":"stickers","name":"贴纸","version":"2.1.0","entry":"main.qml","service":{"exec":"bin/server","port":9200},"uploads":[{"id":"photo","label":"实拍","accept":[".png"],"path":"/sticker/photo","focused_only":true}]}`)
+	writeApp(t, r.UserDir, "flashcard", `{"id":"flashcard","name":"闪卡","version":"1.0.0","entry":"main.qml","service":{"exec":"bin/server","port":9210},"uploads":[{"id":"anki","label":"闪卡","accept":[".apkg"],"path":"/import"}]}`)
+	h := &Handler{Reg: r}
+	for _, focus := range []string{"", "doc", "flashcard.anki", "stickers.other"} {
+		for _, slot := range h.uploadSlots(focus) {
+			if slot.App == "stickers" {
+				t.Errorf("公共页面 %q 不应出现实拍", focus)
+			}
+		}
+	}
+	found := false
+	for _, slot := range h.uploadSlots("stickers.photo") {
+		if slot.App == "stickers" && slot.ID == "photo" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("实拍专属二维码页面应显示上传项")
 	}
 }
