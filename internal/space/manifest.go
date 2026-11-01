@@ -118,6 +118,20 @@ type Fetch struct {
 	SHA256 string `json:"sha256"`
 	// To 存成什么文件名 (默认取 URL 最后一段)。
 	To string `json:"to,omitempty"`
+	// Arch 限定下载物的架构: aarch64 / armv7; 空 = 所有架构下载同一份。
+	Arch []string `json:"arch,omitempty"`
+}
+
+func (f Fetch) SupportsArch(arch string) bool {
+	if len(f.Arch) == 0 {
+		return true
+	}
+	for _, a := range f.Arch {
+		if a == arch {
+			return true
+		}
+	}
+	return false
 }
 
 var idRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,31}$`)
@@ -220,6 +234,11 @@ func (m *Manifest) Validate() error {
 			}
 			if f.To != "" && (!isRelativeInside(f.To) || strings.Contains(f.To, "/")) {
 				return fmt.Errorf("install.fetch[%d].to 只能是文件名: %q", i, f.To)
+			}
+			for _, a := range f.Arch {
+				if a != "aarch64" && a != "armv7" {
+					return fmt.Errorf("install.fetch[%d].arch %q 不认识 (aarch64 / armv7)", i, a)
+				}
 			}
 		}
 		for _, f := range []struct{ name, val string }{

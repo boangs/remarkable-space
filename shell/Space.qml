@@ -104,13 +104,15 @@ Rectangle {
             else space.applyScreenMode()
             if (st === 200 && r && r.hero !== undefined) space.heroChoice = r.hero
             if (st === 200 && r && r.timezone) space.tzPref = r.timezone
+            if (st === 200 && r) space.showAppLoad = r.showAppLoad === true
+            space.applyAppLoadEntryVisibility()
         })
         loadHeroList()
     }
     function saveShellCfg(cb) {
         request("PUT", baseUrl + "/space/apps/shell/data/config",
                 { screenMode: space.screenMode, hero: space.heroChoice, lang: space.langPref,
-                  timezone: space.tzPref }, cb || null)
+                  timezone: space.tzPref, showAppLoad: space.showAppLoad }, cb || null)
     }
 
     // 首页顶部那张大卡放什么:
@@ -125,8 +127,8 @@ Rectangle {
         })
     }
     // AppLoad 自己会往侧栏插一个入口。空间里已经能直接启动那些应用了
-    // (launch.type=appload 走 AppLoadLauncher.launchApplication), 侧栏再放一个
-    // 等于同一件事两个入口, 还把"从哪进"这件事搞乱。
+    // (launch.type=appload 走 AppLoadLauncher.launchApplication), 所以默认隐藏这个重复入口,
+    // 需要两个入口的用户可以在设置里打开。
     //
     // 它是 qmldiff 注入的, 带 objectName="openAppLoad" —— 这是唯一稳定的抓手:
     // id 在运行时拿不到, 按类型/位置找则会随固件改版漂移。
@@ -134,16 +136,17 @@ Rectangle {
     // 时机: 侧栏是懒加载的, 刚启动时还不存在。但用户是从侧栏点进空间的, 所以
     // 空间一显示就说明侧栏已经建好了 —— 在这里做最稳, 不用轮询也不用 Timer
     // (运行时注入的组件里 Timer 本来就不触发)。
-    property bool apploadEntryHidden: false
-    function hideApploadEntry() {
-        if (apploadEntryHidden) return
+    property bool showAppLoad: false
+    onShowAppLoadChanged: space.applyAppLoadEntryVisibility()
+    function toggleAppLoadEntry() {
+        showAppLoad = !showAppLoad
+        saveShellCfg()
+    }
+    function applyAppLoadEntryVisibility() {
         var root = space
         while (root.parent) root = root.parent
         var target = findByObjectName(root, "openAppLoad")
-        if (target) {
-            target.visible = false
-            apploadEntryHidden = true
-        }
+        if (target) target.visible = space.showAppLoad
     }
     function findByObjectName(node, name) {
         if (!node) return null
@@ -935,8 +938,8 @@ Rectangle {
     Timer { id: toastTimer; interval: 4000; repeat: false; onTriggered: space.toastText = "" }
     Timer { interval: 15000; running: space.visible; repeat: true; onTriggered: space.now = new Date() }
 
-    Component.onCompleted: { loadTheme(); reload(); loadShellCfg(); loadTimezones(); loadDevice(); hideApploadEntry(); libStart() }
-    onVisibleChanged: { if (visible) { hideApploadEntry(); libStart() } else libStop() }
+    Component.onCompleted: { loadTheme(); reload(); loadShellCfg(); loadTimezones(); loadDevice(); applyAppLoadEntryVisibility(); libStart() }
+    onVisibleChanged: { if (visible) { applyAppLoadEntryVisibility(); libStart() } else libStop() }
     Component.onDestruction: libStop()
 
     // ─── 文件库桥 (热导入) ──────────────────────────────────────────
@@ -1903,6 +1906,15 @@ Rectangle {
                         Rectangle { anchors.left: parent.left; anchors.leftMargin: space.fpx(72); anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: space.th.lineFaint }
                         MouseArea { id: tzMouse; anchors.fill: parent; onClicked: space.chooseTimezone(modelData.name) }
                     }
+                }
+                Kit.SRow {
+                    th: space.th
+                    Layout.fillWidth: true
+                    ui: space.fs
+                    iconSource: space.icon("squares-four")
+                    text: space.st("set_appload")
+                    detail: space.showAppLoad ? space.st("appload_shown") : space.st("appload_hidden")
+                    onClicked: space.toggleAppLoadEntry()
                 }
                 // 关于空间: 只显示版本号 (当前 + 商店里的最新); 更新本身在商店「系统」栏, 有新版本时点这行跳过去
                 Kit.SRow {

@@ -29,6 +29,16 @@ import (
 // 一份, 够把 xochitl 挤到 low on memory。放 /home 下的隐藏目录, 那是 ext4。
 const payloadWorkDir = ".install-work"
 
+func fetchesForArch(fetch []Fetch, arch string) []Fetch {
+	out := make([]Fetch, 0, len(fetch))
+	for _, f := range fetch {
+		if f.SupportsArch(arch) {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
 // runInstall 执行应用的 install 段: 下载 → 校验 → 跑脚本。
 // appDir 是应用自己的目录 (脚本和 manifest 都在里头)。
 func (r *Registry) runInstall(appDir string, m *Manifest, hdr http.Header) error {
@@ -43,7 +53,11 @@ func (r *Registry) runInstall(appDir string, m *Manifest, hdr http.Header) error
 	// 装完就清: 这些是几十 MB 的中间物, 留着只会占地方
 	defer os.RemoveAll(filepath.Join(r.UserDir, payloadWorkDir))
 
-	for i, f := range m.Install.Fetch {
+	fetches := fetchesForArch(m.Install.Fetch, r.Arch)
+	if len(m.Install.Fetch) > 0 && len(fetches) == 0 {
+		return fmt.Errorf("应用 %s 没有本机架构 %s 的安装包", m.ID, r.Arch)
+	}
+	for i, f := range fetches {
 		name := f.To
 		if name == "" {
 			name = path.Base(strings.Split(f.URL, "?")[0])
@@ -51,8 +65,8 @@ func (r *Registry) runInstall(appDir string, m *Manifest, hdr http.Header) error
 		setProgress(func(p *Progress) {
 			p.Phase = "fetching"
 			p.Got, p.Total = 0, 0
-			if len(m.Install.Fetch) > 1 {
-				p.Name = fmt.Sprintf("%s (本体 %d/%d)", m.Name, i+1, len(m.Install.Fetch))
+			if len(fetches) > 1 {
+				p.Name = fmt.Sprintf("%s (本体 %d/%d)", m.Name, i+1, len(fetches))
 			} else {
 				p.Name = m.Name + " 本体"
 			}

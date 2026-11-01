@@ -15,7 +15,7 @@ VERSION=v0.6.0
 BASE=https://github.com/asivery/rm-appload/releases/download/$VERSION
 
 # arch:文件名:sha256
-SPECS="aarch64:appload-aarch64.tar.gz:2e7912d15df910631dab847ea5d344081ad75c02a46aaac78bdf731accc53a1f"
+SPECS="aarch64:appload-aarch64.tar.gz:2e7912d15df910631dab847ea5d344081ad75c02a46aaac78bdf731accc53a1f armv7:appload-arm32.tar.gz:25aa54735742ea63c0a043cba5496987dd4ca742d8b3fc26a21b7368372bf44f"
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT="$HERE/appload"
@@ -49,6 +49,10 @@ for spec in $SPECS; do
 done
 
 # 摊开给 mkbundle 用: appload.so 进 extensions.d, shims 进 /home/root/shims
-rm -rf "$OUT/aarch64" && mkdir -p "$OUT/aarch64"
-tar xzf "$OUT/appload-aarch64.tar.gz" -C "$OUT/aarch64"
-echo "✓ appload $VERSION 就位: $(ls "$OUT/aarch64" | tr '\n' ' ')"
+for spec in $SPECS; do
+  arch=$(echo "$spec" | cut -d: -f1)
+  file=$(echo "$spec" | cut -d: -f2)
+  rm -rf "$OUT/$arch" && mkdir -p "$OUT/$arch"
+  tar xzf "$OUT/$file" -C "$OUT/$arch"
+  echo "✓ appload $VERSION ($arch) 就位: $(ls "$OUT/$arch" | tr '\n' ' ')"
+done

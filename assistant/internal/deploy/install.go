@@ -386,12 +386,13 @@ echo '  ✓ xovi '`+i18n.T("部署完成", "deployed"), path.Base(p.xoviTar)), n
 
 	// rm-appload: KOReader 这类要 framebuffer 的程序靠它拿画布。装的是官方发布包,
 	// 版本和 sha256 锁在 third_party/fetch-appload.sh 里 —— 这东西对固件版本敏感,
-	// 旧版配新固件会让 xochitl 崩到切槽, 所以绝不能随便换。
-	if b.Has(apploadSrc) {
+	// 旧版配新固件会让 xochitl 崩到切槽, 所以绝不能随便换。扩展和 shim 都必须按架构选。
+	apploadDir := apploadDirForArch(p.Arch)
+	if b.Has(apploadDir + "/appload.so") {
 		for _, f := range []struct{ src, dst string }{
-			{apploadSrc, "/home/root/xovi/extensions.d/appload.so"},
-			{"third_party/appload/qtfb-shim.so", "/home/root/shims/qtfb-shim.so"},
-			{"third_party/appload/qtfb-shim-32bit.so", "/home/root/shims/qtfb-shim-32bit.so"},
+			{apploadDir + "/appload.so", "/home/root/xovi/extensions.d/appload.so"},
+			{apploadDir + "/qtfb-shim.so", "/home/root/shims/qtfb-shim.so"},
+			{apploadDir + "/qtfb-shim-32bit.so", "/home/root/shims/qtfb-shim-32bit.so"},
 		} {
 			data, err := b.ReadAll(f.src)
 			if err != nil {
@@ -475,8 +476,12 @@ rm -f /tmp/10-store-api.conf
 systemctl daemon-reload
 `
 
-// apploadSrc 是安装包里 appload 扩展的路径。
-const apploadSrc = "third_party/appload/appload.so"
+func apploadDirForArch(arch string) string {
+	if arch == "armv7l" {
+		return "third_party/appload/armv7"
+	}
+	return "third_party/appload/aarch64"
+}
 
 // apploadScript 把 appload 放进 xovi 的扩展目录, shim 放进 /home/root/shims。
 // 已启用的扩展都不带 .conf (xovi 按目录认), 所以只拷 .so 就是启用。

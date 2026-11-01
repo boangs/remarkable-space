@@ -157,9 +157,12 @@ func main() {
 			"space-systemd/10-store-api.conf": "systemd/10-store-api.conf",
 			// rm-appload: KOReader 这类 framebuffer 程序要靠它拿画布。
 			// 由 vendor/fetch-appload.sh 从官方拉下来 (不进仓库, 见那个脚本的说明)。
-			"third_party/appload/appload.so":         "third_party/appload/aarch64/appload.so",
-			"third_party/appload/qtfb-shim.so":       "third_party/appload/aarch64/shims/qtfb-shim.so",
-			"third_party/appload/qtfb-shim-32bit.so": "third_party/appload/aarch64/shims/qtfb-shim-32bit.so",
+			"third_party/appload/aarch64/appload.so":         "third_party/appload/aarch64/appload.so",
+			"third_party/appload/aarch64/qtfb-shim.so":       "third_party/appload/aarch64/shims/qtfb-shim.so",
+			"third_party/appload/aarch64/qtfb-shim-32bit.so": "third_party/appload/aarch64/shims/qtfb-shim-32bit.so",
+			"third_party/appload/armv7/appload.so":           "third_party/appload/armv7/appload.so",
+			"third_party/appload/armv7/qtfb-shim.so":         "third_party/appload/armv7/shims/qtfb-shim.so",
+			"third_party/appload/armv7/qtfb-shim-32bit.so":   "third_party/appload/armv7/shims/qtfb-shim-32bit.so",
 		} {
 			p := filepath.Join(*spaceRepo, local)
 			if _, err := os.Stat(p); err != nil {

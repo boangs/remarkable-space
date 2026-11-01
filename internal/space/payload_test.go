@@ -65,3 +65,35 @@ func TestFetchVerifiedNoRetryOn404(t *testing.T) {
 		t.Fatalf("err=%v calls=%d", err, calls)
 	}
 }
+
+func TestFetchesForArch(t *testing.T) {
+	fetch := []Fetch{
+		{URL: "common"},
+		{URL: "64", Arch: []string{"aarch64"}},
+		{URL: "32", Arch: []string{"armv7"}},
+	}
+	for arch, want := range map[string]string{"aarch64": "common,64", "armv7": "common,32", "arm": "common"} {
+		var urls []string
+		for _, f := range fetchesForArch(fetch, arch) {
+			urls = append(urls, f.URL)
+		}
+		if got := strings.Join(urls, ","); got != want {
+			t.Errorf("fetchesForArch(%q) = %q, want %q", arch, got, want)
+		}
+	}
+}
+
+func TestFetchArchValidation(t *testing.T) {
+	m := Manifest{
+		ID: "x", Name: "X", Version: "1.0", Entry: "main.qml",
+		Install: &Install{
+			Fetch: []Fetch{{
+				URL: "https://example.com/x.zip", SHA256: strings.Repeat("0", 64), Arch: []string{"armhf"},
+			}},
+			Script: "setup.sh",
+		},
+	}
+	if err := m.Validate(); err == nil {
+		t.Fatal("Validate() accepted an unknown fetch architecture")
+	}
+}
