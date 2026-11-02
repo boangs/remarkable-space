@@ -1,5 +1,7 @@
 {
-  "hint":     "手机扫码上传文档、字体、壁纸（需与手机同 Wi-Fi）",
-  "refresh":  "刷新",
-  "no_wifi":  "请先连接 Wi-Fi"
+  "hint": "手机扫码上传文档、字体、壁纸（需与手机同 Wi-Fi）",
+  "refresh": "刷新",
+  "no_wifi": "请先连接 Wi-Fi",
+  "_app_name": "扫码上传",
+  "_app_description": "手机扫码上传文档、字体、壁纸、应用包"
 }

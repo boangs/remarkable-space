@@ -1,0 +1,12 @@
+{
+  "title": "Esquemas de entrada",
+  "refresh": "Actualizar",
+  "active": "Activo",
+  "hint": "Toca para cambiar — surte efecto de inmediato y se mantiene después de reiniciar. Wubi utiliza la tabla Baishuang 86; escribe z en Wubi para buscar un carácter por pinyin.",
+  "svc_down": "El servicio del método de entrada no responde",
+  "parse_failed": "No se pudo leer la respuesta",
+  "switching": "Cambiando…",
+  "switch_failed": "Cambio fallido",
+  "_app_name": "Método de entrada",
+  "_app_description": "Cambiar entre métodos de entrada Pinyin y Wubi"
+}

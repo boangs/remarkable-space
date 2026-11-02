@@ -25,8 +25,9 @@ import (
 // 注意 xochitl.conf 里的 Language 键只有用户在系统设置里切换过才会写入; 从没切过的
 // 设备上它不存在, 所以不能把"读不到"当成"用户要英文"——还得往下猜。
 
-// SupportedLangs 是空间自带词典的语言。应用可以带更多, 外壳按同样的规则回落。
-var SupportedLangs = []string{"en", "zh-CN"}
+// SupportedLangs 与原系统自带语言、我们新增的四种系统语言一一对应。
+// 没有词典的语言一律回退英文, 不拿欧洲语言或简体代替其他语言。
+var SupportedLangs = []string{"en", "de", "fr", "es", "zh-CN", "zh-TW", "ja", "ko"}
 
 const DefaultLang = "en"
 
@@ -46,8 +47,7 @@ func NormalizeLang(s string) string {
 	switch {
 	case strings.HasPrefix(low, "zh-hant"), strings.HasPrefix(low, "zh-tw"),
 		strings.HasPrefix(low, "zh-hk"), strings.HasPrefix(low, "zh-mo"):
-		// 繁体暂时没有词典, 先给简体 —— 比掉到英文贴近
-		return "zh-CN"
+		return "zh-TW"
 	case strings.HasPrefix(low, "zh"):
 		return "zh-CN"
 	}

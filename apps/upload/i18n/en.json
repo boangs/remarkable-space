@@ -1,5 +1,7 @@
 {
-  "hint":     "Scan with your phone to upload documents, fonts and wallpapers (same Wi-Fi network)",
-  "refresh":  "Refresh",
-  "no_wifi":  "Connect to Wi-Fi first"
+  "hint": "Scan with your phone to upload documents, fonts and wallpapers (same Wi-Fi network)",
+  "refresh": "Refresh",
+  "no_wifi": "Connect to Wi-Fi first",
+  "_app_name": "Upload",
+  "_app_description": "Upload documents, fonts, wallpapers and app packages by QR code"
 }

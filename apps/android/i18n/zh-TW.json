@@ -1,0 +1,5 @@
+{
+  "_app_name": "Android",
+  "_app_description": "重啟進入本機的 Android (rmkit 助手安裝後可用)",
+  "_launch_confirm": "將重啟裝置進入 Android，未儲存的內容會先由系統自動儲存。確定繼續？"
+}

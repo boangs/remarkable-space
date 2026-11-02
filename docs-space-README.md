@@ -125,7 +125,9 @@ Item {
    `xochitl.conf` 的 `Language` → `Keyboard` → 环境变量往下猜
 3. `en`
 
-写法归一：`zh_CN` / `zh-Hans` / `zh` 都算 `zh-CN`，繁体暂时也给简体词典（比掉到英文贴近）。
+空间支持 `en / de / fr / es / zh-CN / zh-TW / ja / ko`，与原系统自带语言及我们新增的语言一致。
+`zh_CN` / `zh-Hans` / `zh` 归为 `zh-CN`，`zh_TW` / `zh-Hant` / `zh-HK` 归为 `zh-TW`；其他写法按主语言段匹配。
+没有词典的语言只回退 `en`，不使用其他欧洲语言或简体中文代替。
 
 ### 应用怎么用
 
@@ -137,8 +139,17 @@ app/
   main.qml
   i18n/
     en.json       必备 —— 缺词时回落到它
+    de.json
+    fr.json
+    es.json
     zh-CN.json
+    zh-TW.json
+    ja.json
+    ko.json
 ```
+
+保留 `_app_name` / `_app_description` / `_launch_confirm` 分别给应用名、简介和启动确认文案；
+后端与商店索引也从这些语言文件取值，不在 QML 里另写一套名称。
 
 ```json
 { "add_task": "添加任务", "done": "完成", "empty_hint": "还没有任务" }
@@ -157,7 +168,7 @@ Button { text: space.tr("add_task") }
 Text { text: space.trApp(app.id, "now_playing") }
 ```
 
-`n` 等于 1 时会先找 `<key>_one`，英文单复数用得上（`"n_albums": "{n} albums"`, `"n_albums_one": "1 album"`）；中文词典不用写。
+`n` 等于 1 时会先找 `<key>_one`（法语也包括 0），英文单复数用得上（`"n_albums": "{n} albums"`, `"n_albums_one": "1 album"`）；中文、日文、韩文词典不用写。
 
 查不到词条时先回落 `en.json`，再回落 key 本身 —— **永远不会显示成空白**，最差也是露出一个英文 key，一眼能看出漏翻了哪条。
 

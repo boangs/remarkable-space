@@ -62,24 +62,25 @@ type Module struct {
 
 // Manifest 是应用清单 (manifest.json)。
 type Manifest struct {
-	ID          string   `json:"id"`                    // 唯一标识: 小写字母/数字/-/_ , 1-32 位, 也是目录名
-	Name        string   `json:"name"`                  // 显示名 (中文)
-	NameEn      string   `json:"name_en,omitempty"`     // 英文名 (可选)
-	Version     string   `json:"version"`               // 语义化版本
-	Description string   `json:"description,omitempty"` // 一句话说明
-	Icon        string   `json:"icon,omitempty"`        // 图标: 相对路径 / 绝对路径 / qrc: 或 file: URL
-	Entry       string   `json:"entry,omitempty"`       // 界面入口 QML (相对路径), 与 launch 二选一或同时有
-	Widget      string   `json:"widget,omitempty"`      // 首页小组件 QML (相对路径, 可选)
-	WidgetSize  string   `json:"widget_size,omitempty"` // 小组件尺寸: half (半宽, 默认) / hero (首页顶部整宽大卡)
-	WidgetSlot  string   `json:"widget_slot,omitempty"` // 指定首页位置: plan (今日计划那张卡); 不填就进「正在进行」
-	Category    string   `json:"category,omitempty"`    // system / settings / reader / tool / game / other
-	Order       int      `json:"order,omitempty"`       // 同类内排序 (小的在前)
-	Arch        []string `json:"arch,omitempty"`        // 支持的架构: aarch64 / armv7; 空 = 都支持
-	MinShell    int      `json:"min_shell,omitempty"`   // 需要的最低外壳契约版本
-	Service     *Service `json:"service,omitempty"`
-	Launch      *Launch  `json:"launch,omitempty"`
-	Module      *Module  `json:"module,omitempty"`  // 编译发布: 与 entry/widget 二选一
-	Install     *Install `json:"install,omitempty"` // 装完应用包之后还要装的"本体"
+	ID            string   `json:"id"`                       // 唯一标识: 小写字母/数字/-/_ , 1-32 位, 也是目录名
+	Name          string   `json:"name"`                     // 显示名 (中文)
+	NameEn        string   `json:"name_en,omitempty"`        // 英文名 (可选)
+	Version       string   `json:"version"`                  // 语义化版本
+	Description   string   `json:"description,omitempty"`    // 一句话说明
+	DescriptionEn string   `json:"description_en,omitempty"` // 英文说明 (可选)
+	Icon          string   `json:"icon,omitempty"`           // 图标: 相对路径 / 绝对路径 / qrc: 或 file: URL
+	Entry         string   `json:"entry,omitempty"`          // 界面入口 QML (相对路径), 与 launch 二选一或同时有
+	Widget        string   `json:"widget,omitempty"`         // 首页小组件 QML (相对路径, 可选)
+	WidgetSize    string   `json:"widget_size,omitempty"`    // 小组件尺寸: half (半宽, 默认) / hero (首页顶部整宽大卡)
+	WidgetSlot    string   `json:"widget_slot,omitempty"`    // 指定首页位置: plan (今日计划那张卡); 不填就进「正在进行」
+	Category      string   `json:"category,omitempty"`       // system / settings / reader / tool / game / other
+	Order         int      `json:"order,omitempty"`          // 同类内排序 (小的在前)
+	Arch          []string `json:"arch,omitempty"`           // 支持的架构: aarch64 / armv7; 空 = 都支持
+	MinShell      int      `json:"min_shell,omitempty"`      // 需要的最低外壳契约版本
+	Service       *Service `json:"service,omitempty"`
+	Launch        *Launch  `json:"launch,omitempty"`
+	Module        *Module  `json:"module,omitempty"`  // 编译发布: 与 entry/widget 二选一
+	Install       *Install `json:"install,omitempty"` // 装完应用包之后还要装的"本体"
 	// Stickers 贴纸包: 应用目录里放贴纸包的子目录 (下面每个子目录是一个包)。这种条目只为了走
 	// 商店的下载/升级/删除, 不出现在应用格子里; 装好后由安装器把包挂进贴纸目录。
 	Stickers string `json:"stickers,omitempty"`

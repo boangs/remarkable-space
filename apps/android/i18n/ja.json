@@ -1,0 +1,5 @@
+{
+  "_app_name": "Android",
+  "_app_description": "このデバイスでAndroidに再起動します（Space Assistantでのインストールが必要です）",
+  "_launch_confirm": "Androidに再起動しますか？システムはまず保存されていないコンテンツを保存します。続行しますか？"
+}

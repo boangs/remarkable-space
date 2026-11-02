@@ -15,7 +15,7 @@
 | 功能 | 注入点 | 对应旧 qmd |
 | --- | --- | --- |
 | 侧栏「高级」入口 + 高级面板 | `Sidebar` 下的 `ColumnLayout`，排到「指南」上方 | `advanced_panel.qmd` |
-| 系统语言列表加「中文（简体）」 | `SelectionComponent`（`objectName=SystemLanguageDialog`） | `language_zh_cn.qmd` |
+| 系统语言列表加简体中文、繁体中文、日文、韩文 | `SelectionComponent`（`objectName=SystemLanguageDialog`） | `language_zh_cn.qmd` |
 | 手写选区工具栏 AI 按钮 | `SceneSelectionHandler` 下的 `SelectionContextualMenu` | `glyph_selection_ai.qmd` |
 | 文本选择菜单 AI 按钮 | `TextSelectionMenu` 下的 `SelectionContextualMenu` | `ai_text_button.qmd` |
 | 拼音候选框（`pinyin_ime.qml`） | 主窗口 `contentItem`（等价原 MainView `FocusScope#rootItem`） | `pinyin_interceptor.qmd` |

@@ -1,0 +1,5 @@
+{
+  "_app_name": "Android",
+  "_app_description": "Redémarrer sous Android sur cet appareil (nécessite l'installation avec Space Assistant)",
+  "_launch_confirm": "Redémarrer sous Android ? Le système enregistrera d'abord le contenu non sauvegardé. Continuer ?"
+}

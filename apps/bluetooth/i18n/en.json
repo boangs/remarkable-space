@@ -18,5 +18,7 @@
   "disconnect": "Disconnect",
   "connect": "Connect",
   "pair": "Pair",
-  "forget": "Forget"
+  "forget": "Forget",
+  "_app_name": "Bluetooth",
+  "_app_description": "Scan, pair and connect Bluetooth headphones"
 }

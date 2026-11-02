@@ -398,7 +398,7 @@ Rectangle {
     // 外壳就在 xochitl 进程里, /proc/self/maps 里映射着哪个 reMarkable_xx.qm 就是
     // 系统当前的界面语言 (和后端 SystemLang 同一个办法)。但 /proc 文件报的大小是 0,
     // XHR 按大小读回来是空的, 实际上这一步一直读不到 —— 所以再看上一次后端定下的语言
-    // (shell/lastlang.json, 每次定稿都记), 再没有才认用户存的偏好, 都没有按中文。
+    // (shell/lastlang.json, 每次定稿都记), 再没有才认用户存的偏好, 都没有按英文。
     // 不能直接拿偏好: 系统语言优先于偏好, 偏好是 en 而系统是中文时, 后端回话前那一瞬
     // 会先显示英文 (自更新后第一次打开, 后端正重启, 界面就停在了英文空白页, 2026-10-27)。
     function sysLangSync() {
@@ -420,13 +420,13 @@ Rectangle {
         if (l) return l
         var cfg = readJsonSync("file:///home/root/.local/share/rmkit-cn/space/data/shell/config.json")
         l = normLang(cfg && cfg.lang ? cfg.lang : "")
-        return l || "zh-CN"
+        return l || "en"
     }
     property var shellDict: readJsonSync(shellDir + "/i18n/" + bootLang + ".json") || ({})
     property var shellDictEn: bootLang === "en" ? shellDict
                                                 : (readJsonSync(shellDir + "/i18n/en.json") || ({}))
 
-    // zh_CN / zh-Hans / zh → zh-CN; 认不出的回落 en。和后端 NormalizeLang 保持一致。
+    // 与原系统语言及我们新增的语言一致; 认不出的由调用方回退英文。
     function normLang(s) {
         if (!s) return ""
         s = ("" + s).trim()
@@ -434,14 +434,39 @@ Rectangle {
         if (cut > 0) s = s.substring(0, cut)
         s = s.replace(/_/g, "-")
         var low = s.toLowerCase()
+        if (low.indexOf("zh-hant") === 0 || low.indexOf("zh-tw") === 0 ||
+            low.indexOf("zh-hk") === 0 || low.indexOf("zh-mo") === 0) return "zh-TW"
         if (low.indexOf("zh") === 0) return "zh-CN"
-        if (low === "en" || low.indexOf("en-") === 0) return "en"
+        var supported = ["en", "de", "fr", "es", "ja", "ko"]
+        for (var i = 0; i < supported.length; ++i) {
+            if (low === supported[i] || low.indexOf(supported[i] + "-") === 0) return supported[i]
+        }
         return ""
     }
 
     function setLang(code) {
         var n = normLang(code)
         lang = n || "en"
+    }
+
+    readonly property var chooseableLangs: ["en", "de", "fr", "es", "zh-CN", "zh-TW", "ja", "ko"]
+    function langNativeName(code) {
+        var names = {
+            "en": "English", "de": "Deutsch", "fr": "Français", "es": "Español",
+            "zh-CN": "中文（简体）", "zh-TW": "中文（繁體）", "ja": "日本語", "ko": "한국어"
+        }
+        return names[code] || code
+    }
+    function nextLang(code) {
+        var i = chooseableLangs.indexOf(code)
+        return chooseableLangs[(i + 1) % chooseableLangs.length]
+    }
+    function qtLocaleName() {
+        var m = {
+            "zh-CN": "zh_CN", "zh-TW": "zh_TW", "de": "de_DE", "fr": "fr_FR",
+            "es": "es_ES", "ja": "ja_JP", "ko": "ko_KR"
+        }
+        return m[lang] || "en_US"
     }
 
     // 设置里切语言。写进 shell/config.json 的 lang 键, 顺手把当前应用的词典重读一遍,
@@ -459,8 +484,9 @@ Rectangle {
     // 词典里写 "正在下载 {name}…" / "Downloading {name}…" —— 占位符位置随语言走。
     // 查词: 先当前语言再 en 再 key 本身。args.n === 1 时先试 <key>_one ——
     // 英文单复数不同 ("1 album" / "2 albums"), 中文词典不用写 _one, 找不到就落回原 key。
+    function isSingular(n) { return n === 1 || (lang === "fr" && n === 0) }
     function lookup(d, dEn, key, args) {
-        if (args && args.n === 1) {
+        if (args && isSingular(args.n)) {
             var one = d[key + "_one"]
             if (one === undefined && d[key] === undefined) one = dEn[key + "_one"]
             if (one !== undefined) return one
@@ -940,7 +966,7 @@ Rectangle {
         return space.st("tab_home")
     }
     function dateLine() {
-        return localNow().toLocaleDateString(Qt.locale(space.lang === "zh-CN" ? "zh_CN" : "en_US"), space.st("date_format"))
+        return localNow().toLocaleDateString(Qt.locale(qtLocaleName()), space.st("date_format"))
     }
 
     Timer { id: toastTimer; interval: 4000; repeat: false; onTriggered: space.toastText = "" }
@@ -1805,8 +1831,8 @@ Rectangle {
                     ui: space.fs
                     iconSource: space.icon("translate")
                     text: space.st("set_language")
-                    detail: space.lang === "zh-CN" ? "\u4e2d\u6587\uff08\u7b80\u4f53\uff09" : "English"
-                    onClicked: space.chooseLang(space.lang === "zh-CN" ? "en" : "zh-CN")
+                    detail: space.lang === "zh-CN" ? "\u4e2d\u6587\uff08\u7b80\u4f53\uff09" : space.langNativeName(space.lang)
+                    onClicked: space.chooseLang(space.nextLang(space.lang))
                 }
                 Kit.SRow {
                     th: space.th

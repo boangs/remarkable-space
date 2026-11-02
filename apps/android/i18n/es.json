@@ -1,0 +1,5 @@
+{
+  "_app_name": "Android",
+  "_app_description": "Reiniciar en Android en este dispositivo (requiere instalación con Space Assistant)",
+  "_launch_confirm": "¿Reiniciar en Android? El sistema guardará primero el contenido no guardado. ¿Continuar?"
+}

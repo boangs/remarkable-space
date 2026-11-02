@@ -1,0 +1,5 @@
+{
+  "_app_name": "Android",
+  "_app_description": "Restart into Android on this device (requires installation with Space Assistant)",
+  "_launch_confirm": "Reboot into Android? The system will save unsaved content first. Continue?"
+}

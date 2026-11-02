@@ -4,6 +4,7 @@
   "name_en": "Input Method",
   "version": "1.0.0",
   "description": "拼音 / 五笔方案切换",
+  "description_en": "Switch between Pinyin and Wubi input methods",
   "icon": "qrc:/ark/icons/sliders_horizontal",
   "entry": "main.qml",
   "category": "settings",

@@ -245,9 +245,9 @@ func (h *Handler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 // localizeIndex 按界面语言给商店索引里的应用名和简介定稿 (和 list 对已装应用的做法一致):
-// 英文界面下有 name_en / description_en 的条目换成英文, 没填的保持原文。缓存里存的是原始
-// 索引, 每次响应时再换 —— 用户切语言不用等缓存过期。解析不了就原样返回, 不能因为本地化
-// 把商店弄没了。
+// 优先取打包时从 i18n 语言文件生成的 names / descriptions, 老索引回退 name_en /
+// description_en。缓存里存原始索引, 每次响应时再换 —— 用户切语言不用等缓存过期。
+// 解析不了就原样返回, 不能因为本地化把商店弄没了。
 func localizeIndex(body []byte, lang string) []byte {
 	if lang == "zh-CN" {
 		return body
@@ -264,8 +264,15 @@ func localizeIndex(body []byte, lang string) []byte {
 			continue
 		}
 		for _, k := range []string{"name", "description"} {
-			if v, _ := a[k+"_en"].(string); v != "" {
-				a[k] = v
+			translated := ""
+			if values, ok := a[k+"s"].(map[string]any); ok {
+				translated, _ = values[lang].(string)
+			}
+			if translated == "" && lang != "zh-CN" {
+				translated, _ = a[k+"_en"].(string)
+			}
+			if translated != "" {
+				a[k] = translated
 				changed = true
 			}
 		}
@@ -372,14 +379,42 @@ func (h *Handler) AutoStart() {
 	}
 }
 
+// localizedAppText 与 QML 的 space.tr 使用同一份语言文件。旧应用没有对应词条时
+// 回退 manifest 的英文字段, 再回退原始字段, 不要求所有应用一次改完。
+func localizedAppText(a App, lang, key string) string {
+	if b, err := os.ReadFile(filepath.Join(a.Dir, "i18n", lang+".json")); err == nil {
+		var dict map[string]string
+		if json.Unmarshal(b, &dict) == nil && dict[key] != "" {
+			return dict[key]
+		}
+	}
+	if lang != "zh-CN" {
+		if key == "_app_name" && a.NameEn != "" {
+			return a.NameEn
+		}
+		if key == "_app_description" && a.DescriptionEn != "" {
+			return a.DescriptionEn
+		}
+	}
+	switch key {
+	case "_app_name":
+		return a.Name
+	case "_launch_confirm":
+		if a.Launch != nil {
+			return a.Launch.Confirm
+		}
+	}
+	return a.Description
+}
+
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	apps := h.Reg.List()
 	lang := h.CurrentLang()
 	for i := range apps {
-		// 按界面语言给应用名定稿, 前端拿到的 name 就是该显示的那个。
-		// 没填 name_en 的应用保持原名 —— 总比显示个 id 强。
-		if lang != "zh-CN" && apps[i].NameEn != "" {
-			apps[i].Name = apps[i].NameEn
+		apps[i].Name = localizedAppText(apps[i], lang, "_app_name")
+		apps[i].Description = localizedAppText(apps[i], lang, "_app_description")
+		if apps[i].Launch != nil && apps[i].Launch.Confirm != "" {
+			apps[i].Launch.Confirm = localizedAppText(apps[i], lang, "_launch_confirm")
 		}
 		if apps[i].Service != nil {
 			st := h.Sup.Status(apps[i].ID)

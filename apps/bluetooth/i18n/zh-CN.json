@@ -18,5 +18,7 @@
   "disconnect": "断开",
   "connect": "连接",
   "pair": "配对",
-  "forget": "忘记"
+  "forget": "忘记",
+  "_app_name": "蓝牙",
+  "_app_description": "蓝牙耳机扫描、配对、连接"
 }

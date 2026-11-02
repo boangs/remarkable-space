@@ -22,5 +22,7 @@
   "confirm": "Apply",
   "tab_theme": "Theme",
   "theme_hint": "Change how Space looks: colors, outlines and the home page. Tap one to switch, no restart needed.",
-  "theme_more": "More themes in the store"
+  "theme_more": "More themes in the store",
+  "_app_name": "Personalize",
+  "_app_description": "System fonts and sleep-screen wallpapers"
 }

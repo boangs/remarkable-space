@@ -13,12 +13,19 @@ func TestNormalizeLang(t *testing.T) {
 		"zh":          "zh-CN",
 		"zh_CN.UTF-8": "zh-CN",
 		"zh-Hans":     "zh-CN",
-		"zh_TW":       "zh-CN", // 繁体暂无词典, 给简体比掉到英文贴近
+		"zh_TW":       "zh-TW",
+		"zh-Hant":     "zh-TW",
+		"zh_HK":       "zh-TW",
 		"en":          "en",
 		"en_US.UTF-8": "en",
 		"en-GB":       "en",
 		"":            "en",
-		"de_DE":       "en", // 还没有德语词典
+		"de_DE":       "de",
+		"fr_FR":       "fr",
+		"es_ES":       "es",
+		"ja_JP":       "ja",
+		"ko_KR":       "ko",
+		"pt_BR":       "en", // 没有词典的语言只回退英文
 		"gibberish":   "en",
 	}
 	for in, want := range cases {

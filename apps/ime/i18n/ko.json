@@ -1,0 +1,12 @@
+{
+  "title": "입력 방식",
+  "refresh": "새로 고침",
+  "active": "활성",
+  "hint": "탭하여 전환 — 즉시 적용되며 재시작 후에도 유지됩니다. Wubi는 Baishuang 86 표를 사용합니다; Wubi에서 z를 입력하면 병음으로 글자를 조회할 수 있습니다.",
+  "svc_down": "입력기 서비스가 응답하지 않습니다",
+  "parse_failed": "응답을 읽을 수 없습니다",
+  "switching": "전환 중…",
+  "switch_failed": "전환 실패",
+  "_app_name": "입력기",
+  "_app_description": "병음과 Wubi 입력 방식 간 전환"
+}

@@ -6,5 +6,7 @@
   "svc_down": "The input method service isn't responding",
   "parse_failed": "Couldn't read the response",
   "switching": "Switching…",
-  "switch_failed": "Switch failed"
+  "switch_failed": "Switch failed",
+  "_app_name": "Input Method",
+  "_app_description": "Switch between Pinyin and Wubi input methods"
 }

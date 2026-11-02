@@ -38,8 +38,8 @@ automatically, and every file in the bundle is checked against its sha256 before
 Supported devices: reMarkable 2, Paper Pro and Paper Pro Move. On a Mac, if the first launch says the developer
 cannot be verified, allow it under System Settings → Privacy & Security → Open Anyway.
 
-The base layer also adds Simplified Chinese as a system language option and a Chinese input method. Your current
-language setting is not changed.
+The base layer adds Simplified Chinese, Traditional Chinese, Japanese and Korean as system language options,
+plus a Chinese input method. Your current language setting is not changed.
 
 ## Space disappeared after a reMarkable system update? Wait 2 minutes
 
@@ -72,7 +72,7 @@ background services for apps. It started as part of [rmkit-cn](https://github.co
 
 | Here | Was in rmkit-cn | What it is |
 |---|---|---|
-| `base/` | the whole repository | Base layer: injection chain, Chinese localisation, IME backend, post-upgrade recovery scripts; see [base/README.md](base/README.md) |
+| `base/` | the whole repository | Base layer: injection chain, system localisation, IME backend, post-upgrade recovery scripts; see [base/README.md](base/README.md) |
 | `shell/` | `space/shell/` | The shell `Space.qml`: tabs, widget mounting, app creation and teardown, the `space` API given to apps |
 | `kit/` | `space/kit/` | Shared QML components (`SRow` / `STile` / `SButton` …) and icons |
 | `apps/` | `space/apps/` | **Built-in** apps, deployed by the installer. Only system entry points (settings-like); third-party apps are installed from the catalog and live in another repository |

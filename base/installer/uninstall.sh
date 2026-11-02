@@ -35,9 +35,12 @@ fi
 rm -f "$QMD_DIR/pinyin_interceptor.qmd" "$QMD_DIR/zh_CN.rcc" "$QMD_DIR/hashtab"
 rm -f "$QMD_DIR/advanced_panel.qmd" "$QMD_DIR/language_zh_cn.qmd"
 
-# 清中文翻译 qm
+# 清我们新增的系统翻译 qm
 mount -o remount,rw / 2>/dev/null || true
-rm -f /usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm
+rm -f /usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm \
+      /usr/share/remarkable/xochitl/translations/reMarkable_zh_TW.qm \
+      /usr/share/remarkable/xochitl/translations/reMarkable_ja.qm \
+      /usr/share/remarkable/xochitl/translations/reMarkable_ko.qm
 
 rm -rf "$RMKIT_DIR"
 # 蓝牙音频组件 (bluealsa/mpg123 + D-Bus 策略只在 /etc 上层 tmpfs, 重启即消)

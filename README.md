@@ -55,7 +55,7 @@
 |---|---|---|
 | `shell/` | `space/shell/` | 外壳 `Space.qml`：标签页、小组件挂载、应用创建销毁、给应用的 `space` API |
 | `kit/` | `space/kit/` | 共享 QML 组件（`SRow` / `STile` / `SButton` …）与图标 |
-| `base/` | 整个仓库 | 底座：注入链、汉化、输入法后端、升级恢复脚本，见 [base/README.md](base/README.md) |
+| `base/` | 整个仓库 | 底座：注入链、系统语言、输入法后端、升级恢复脚本，见 [base/README.md](base/README.md) |
 | `apps/` | `space/apps/` | **内置**应用，随安装器部署。只放系统功能入口（设置类）——第三方应用走商店安装，源码在另一个仓库 |
 | `server/` | `upload-server-go/internal/space/` | 后端 Go 包：注册表、安装、后台托管、最近在读、天气地图渲染 |
 | `data/geo.json` | 随后端部署 | 天气地图的矢量底图（Natural Earth，公共领域，已简化） |

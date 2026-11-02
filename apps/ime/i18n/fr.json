@@ -1,0 +1,12 @@
+{
+  "title": "Schémas de saisie",
+  "refresh": "Actualiser",
+  "active": "Actif",
+  "hint": "Appuyez pour changer — prend effet immédiatement et persiste après un redémarrage. Wubi utilise la table Baishuang 86 ; tapez z dans Wubi pour rechercher un caractère par pinyin.",
+  "svc_down": "Le service de méthode de saisie ne répond pas",
+  "parse_failed": "Impossible de lire la réponse",
+  "switching": "Changement en cours…",
+  "switch_failed": "Échec du changement",
+  "_app_name": "Méthode de saisie",
+  "_app_description": "Basculer entre les méthodes de saisie Pinyin et Wubi"
+}

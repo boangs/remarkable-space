@@ -22,5 +22,7 @@
   "confirm": "确认应用",
   "tab_theme": "主题",
   "theme_hint": "换空间的外观：颜色、线框、首页样式。点一下就换，不用重启。",
-  "theme_more": "去商店找更多主题"
+  "theme_more": "去商店找更多主题",
+  "_app_name": "个性化",
+  "_app_description": "系统字体与休眠壁纸"
 }

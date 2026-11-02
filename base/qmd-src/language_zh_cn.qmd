@@ -1,4 +1,4 @@
-; rmkit-cn: Inject zh_CN option into System Language selector
+; rmkit-cn: Add Simplified/Traditional Chinese, Japanese and Korean to System Language selector
 
 AFFECT /qml/device/view/settings/LanguageAndKeyboard.qml
     TRAVERSE DeviceKeyboardNavigationHandler#root > Component#languageDialog
@@ -10,12 +10,18 @@ AFFECT /qml/device/view/settings/LanguageAndKeyboard.qml
                     var base = languageSettings.availableLanguageCodes
                     var arr = []
                     for (var i = 0; i < base.length; i++) arr.push(base[i])
-                    if (arr.indexOf("zh_CN") === -1) arr.push("zh_CN")
+                    var extra = ["zh_CN", "zh_TW", "ja", "ko"]
+                    for (var j = 0; j < extra.length; j++) {
+                        if (arr.indexOf(extra[j]) === -1) arr.push(extra[j])
+                    }
                     return arr
                 }
                 selectedIndex: model.indexOf(languageSettings.languageCode)
                 display: (modelData) => {
                     if (modelData === "zh_CN") return "\u4e2d\u6587\uff08\u7b80\u4f53\uff09"
+                    if (modelData === "zh_TW") return "中文（繁體）"
+                    if (modelData === "ja") return "日本語"
+                    if (modelData === "ko") return "한국어"
                     return root.languageSettings.getLanguageDisplayName(modelData)
                 }
                 onSelected: (selection) => {

@@ -6,5 +6,7 @@
   "svc_down": "输入法服务未响应",
   "parse_failed": "解析失败",
   "switching": "切换中...",
-  "switch_failed": "切换失败"
+  "switch_failed": "切换失败",
+  "_app_name": "输入法",
+  "_app_description": "拼音 / 五笔方案切换"
 }

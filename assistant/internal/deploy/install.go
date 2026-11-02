@@ -1,7 +1,7 @@
 // Package deploy 把「空间」连同它依赖的底座一次装到设备上。
 //
 // 装两样东西:
-//   - 底座: xovi、qmldiff 注入链与 hashtab、运行时注入 .so、中文汉化、输入法
+//   - 底座: xovi、qmldiff 注入链与 hashtab、运行时注入 .so、新增系统语言、输入法
 //     后端。源码在本仓库 base/ (原 rmkit-cn), 只在系统升级逼着改时才动, 它才是真会把设备弄砖的部分 ——
 //     hashtab 与固件对不上就是 qmldiff panic → xochitl crash → A/B 回滚。
 //   - 空间: 外壳/内置应用/后端 space-server。它走 Qt.createComponent 异步加载,
@@ -123,7 +123,8 @@ func NewPlan(info probe.Info, b *bundle.Bundle) (*Plan, error) {
 	// 两台实测都正常, 所以不再回落。HasLSE 仍然探测, 排查同类问题时有用。
 	// install.sh 375-394: 必备产物
 	for _, f := range []string{"space-dist/" + ar.spaceBin, "dist/" + p.imeBin, "dist/" + ar.imeHook, "dist/" + ar.qmdTool,
-		"vendor/extensions/xovi-message-broker-" + ar.ext + ".so", "dist/reMarkable_zh_CN.qm", "qmd/zh_CN.rcc"} {
+		"vendor/extensions/xovi-message-broker-" + ar.ext + ".so", "dist/reMarkable_zh_CN.qm", "dist/reMarkable_zh_TW.qm",
+		"dist/reMarkable_ja.qm", "dist/reMarkable_ko.qm", "qmd/zh_CN.rcc"} {
 		if !b.Has(f) {
 			return nil, fmt.Errorf(i18n.T("安装包缺必备产物 %s", "bundle is missing required file %s"), f)
 		}
@@ -221,7 +222,9 @@ func NewPlan(info probe.Info, b *bundle.Bundle) (*Plan, error) {
 	// install.sh 481-487: static/
 	add(base+"/static/pinyin_interceptor.qmd", "qmd/pinyin_interceptor.qmd", 0o644)
 	add(base+"/static/zh_CN.rcc", "qmd/zh_CN.rcc", 0o644)
-	add(base+"/static/reMarkable_zh_CN.qm", "dist/reMarkable_zh_CN.qm", 0o644)
+	for _, lang := range []string{"zh_CN", "zh_TW", "ja", "ko"} {
+		add(base+"/static/reMarkable_"+lang+".qm", "dist/reMarkable_"+lang+".qm", 0o644)
+	}
 	// 空间后端 (space-server): 顶替已退役的 upload-server, 同样监听 8080, 路由逐条兼容。
 	// 它自己带上传/蓝牙/字体锁屏图/AI/截图/二维码, 外加空间的注册表与绿色安装。
 	add(spaceBase+"/space-server", "space-dist/"+ar.spaceBin, 0o755)
@@ -248,8 +251,10 @@ func NewPlan(info probe.Info, b *bundle.Bundle) (*Plan, error) {
 		add("/home/root/xovi/extensions.d/librarian.so", "vendor/extensions/librarian-"+ar.ext+".so", 0o755)
 	}
 	add("/home/root/xovi/extensions.d/xovi-message-broker.so", "vendor/extensions/xovi-message-broker-"+ar.ext+".so", 0o755)
-	// install.sh 527-529: 中文 qm
-	add("/usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm", "dist/reMarkable_zh_CN.qm", 0o644)
+	// install.sh 527-529: 新增的系统语言 qm
+	for _, lang := range []string{"zh_CN", "zh_TW", "ja", "ko"} {
+		add("/usr/share/remarkable/xochitl/translations/reMarkable_"+lang+".qm", "dist/reMarkable_"+lang+".qm", 0o644)
+	}
 	// install.sh 531-538: systemd 暂存 (设备端阶段 1 双写到 /etc)
 	for _, n := range b.Names() {
 		if strings.HasPrefix(n, "systemd/") {

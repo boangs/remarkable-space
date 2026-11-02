@@ -4,6 +4,7 @@
   "name_en": "Bluetooth",
   "version": "1.0.0",
   "description": "蓝牙耳机扫描、配对、连接",
+  "description_en": "Scan, pair and connect Bluetooth headphones",
   "icon": "icon.svg",
   "entry": "main.qml",
   "category": "settings",

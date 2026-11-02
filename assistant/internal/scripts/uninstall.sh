@@ -46,9 +46,12 @@ REMOTE_BASE=/home/root/rmkit-cn
     rm -rf /home/root/xovi/exthome/qt-resource-rebuilder/zh_CN
     # 清理 xovi 扩展
     rm -f /home/root/xovi/extensions.d/librarian.so /home/root/xovi/extensions.d/xovi-message-broker.so
-    # 清理中文翻译 qm
+    # 清理我们新增的系统翻译 qm
     mount -o remount,rw / 2>/dev/null || true
-    rm -f /usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm
+    rm -f /usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm \
+          /usr/share/remarkable/xochitl/translations/reMarkable_zh_TW.qm \
+          /usr/share/remarkable/xochitl/translations/reMarkable_ja.qm \
+          /usr/share/remarkable/xochitl/translations/reMarkable_ko.qm
     systemctl daemon-reload
     udevadm control --reload-rules 2>/dev/null || true
     if [ "$UI_LANG" = en ]; then echo 'Uninstall complete'; else echo '卸载完成'; fi

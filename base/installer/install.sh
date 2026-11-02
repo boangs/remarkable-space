@@ -40,9 +40,9 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     rm -rf /home/root/xovi/exthome/qt-resource-rebuilder/zh_CN
     # 清理 xovi 扩展
     rm -f /home/root/xovi/extensions.d/librarian.so /home/root/xovi/extensions.d/xovi-message-broker.so
-    # 清理中文翻译 qm
+    # 清理我们新增的系统翻译 qm
     mount -o remount,rw / 2>/dev/null || true
-    rm -f /usr/share/remarkable/xochitl/translations/reMarkable_zh_CN.qm
+    rm -f /usr/share/remarkable/xochitl/translations/reMarkable_{zh_CN,zh_TW,ja,ko}.qm
     systemctl daemon-reload
     udevadm control --reload-rules 2>/dev/null || true
     echo '卸载完成'
@@ -142,6 +142,9 @@ NEED_FILES=(
   "$DIST_DIR_CHECK/$IME_HOOK_NAME"
   "$DIST_DIR_CHECK/$QMD_TOOL_NAME"
   "$DIST_DIR_CHECK/reMarkable_zh_CN.qm"
+  "$DIST_DIR_CHECK/reMarkable_zh_TW.qm"
+  "$DIST_DIR_CHECK/reMarkable_ja.qm"
+  "$DIST_DIR_CHECK/reMarkable_ko.qm"
   "$DIST_DIR_CHECK/zh_CN.rcc"
 )
 DIST_OK=1
@@ -515,8 +518,10 @@ done
   cp "$SCRIPT_DIR/qmd/pinyin_interceptor.qmd" "$PAYLOAD/home/root/rmkit-cn/static/"
 [ -f "$SCRIPT_DIR/qmd/zh_CN.rcc" ] && \
   cp "$SCRIPT_DIR/qmd/zh_CN.rcc" "$PAYLOAD/home/root/rmkit-cn/static/"
-[ -f "$DIST_DIR/reMarkable_zh_CN.qm" ] && \
-  cp "$DIST_DIR/reMarkable_zh_CN.qm" "$PAYLOAD/home/root/rmkit-cn/static/"
+for lang in zh_CN zh_TW ja ko; do
+  [ -f "$DIST_DIR/reMarkable_${lang}.qm" ] && \
+    cp "$DIST_DIR/reMarkable_${lang}.qm" "$PAYLOAD/home/root/rmkit-cn/static/"
+done
 
 # /home/root/rmkit-cn/upload-server/  Go binary + 静态 web
 cp "$DIST_DIR/$UPLOAD_BIN_NAME" "$PAYLOAD/home/root/rmkit-cn/upload-server/upload-server"
@@ -555,9 +560,11 @@ cp "$SCRIPT_DIR/vendor/extensions/xovi-message-broker-${EXT_ARCH}.so" \
    "$PAYLOAD/home/root/xovi/extensions.d/xovi-message-broker.so"
 chmod +x "$PAYLOAD/home/root/xovi/extensions.d/"*.so
 
-# /usr/share/remarkable/xochitl/translations/  中文 qm
-[ -f "$DIST_DIR/reMarkable_zh_CN.qm" ] && \
-  cp "$DIST_DIR/reMarkable_zh_CN.qm" "$PAYLOAD/usr/share/remarkable/xochitl/translations/"
+# /usr/share/remarkable/xochitl/translations/  新增的系统语言 qm
+for lang in zh_CN zh_TW ja ko; do
+  [ -f "$DIST_DIR/reMarkable_${lang}.qm" ] && \
+    cp "$DIST_DIR/reMarkable_${lang}.qm" "$PAYLOAD/usr/share/remarkable/xochitl/translations/"
+done
 
 # /tmp/rmkit-cn-systemd-staging/  systemd unit + xochitl drop-in
 # (不直接放到 /etc, 因为 /etc 是 overlayfs, 必须设备端 bind-mount 双写)

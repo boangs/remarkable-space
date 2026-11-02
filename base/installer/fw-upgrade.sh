@@ -51,13 +51,15 @@ deploy_static() {
         cp "$STATIC/pinyin_interceptor.qmd" "$QMD_DEPLOY/" && echo "[fw-upgrade] ✓ pinyin_interceptor.qmd"
     [ -f "$STATIC/zh_CN.rcc" ] && \
         cp "$STATIC/zh_CN.rcc" "$QMD_DEPLOY/" && echo "[fw-upgrade] ✓ zh_CN.rcc"
-    # reMarkable_zh_CN.qm → 系统翻译目录（RMPP overlayfs: 写上层 tmpfs, 重启前有效）
-    if [ -f "$STATIC/reMarkable_zh_CN.qm" ]; then
-        mount -o remount,rw / 2>/dev/null || true
-        mkdir -p /usr/share/remarkable/xochitl/translations
-        cp "$STATIC/reMarkable_zh_CN.qm" /usr/share/remarkable/xochitl/translations/
-        echo "[fw-upgrade] ✓ reMarkable_zh_CN.qm"
-    fi
+    # 新增的系统语言 → 系统翻译目录（RMPP overlayfs: 写上层 tmpfs, 重启前有效）
+    mount -o remount,rw / 2>/dev/null || true
+    mkdir -p /usr/share/remarkable/xochitl/translations
+    for lang in zh_CN zh_TW ja ko; do
+        if [ -f "$STATIC/reMarkable_${lang}.qm" ]; then
+            cp "$STATIC/reMarkable_${lang}.qm" /usr/share/remarkable/xochitl/translations/
+            echo "[fw-upgrade] ✓ reMarkable_${lang}.qm"
+        fi
+    done
 }
 
 # 有缓存且 hashtab 版本也匹配 → 直接用

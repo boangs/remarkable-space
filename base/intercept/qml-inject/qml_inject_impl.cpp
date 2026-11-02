@@ -96,6 +96,44 @@ static bool uiLangIsEnglish()
     return spaceLangIsEnglish();
 }
 
+static QByteArray uiLang()
+{
+    FILE *f = fopen("/proc/self/maps", "r");
+    if (f) {
+        static const char kTag[] = "/translations/reMarkable_";
+        char line[1024];
+        QByteArray lang;
+        while (lang.isEmpty() && fgets(line, sizeof line, f)) {
+            const char *p = strstr(line, kTag);
+            if (!p)
+                continue;
+            const char *begin = p + sizeof(kTag) - 1;
+            const char *end = strstr(begin, ".qm");
+            if (end)
+                lang = QByteArray(begin, end - begin);
+        }
+        fclose(f);
+        if (!lang.isEmpty())
+            return lang.replace('_', '-');
+    }
+    return uiLangIsEnglish() ? QByteArray("en") : QByteArray("zh-CN");
+}
+
+static QString sidebarLabel(bool useSpace)
+{
+    if (!useSpace)
+        return uiLangIsEnglish() ? QStringLiteral("Advanced") : QStringLiteral("高级");
+    const QByteArray lang = uiLang();
+    if (lang == "zh-CN") return QStringLiteral("空间");
+    if (lang == "zh-TW") return QStringLiteral("空間");
+    if (lang == "ja") return QStringLiteral("スペース");
+    if (lang == "ko") return QStringLiteral("스페이스");
+    if (lang == "de") return QStringLiteral("Bereich");
+    if (lang == "es") return QStringLiteral("Espacio");
+    if (lang == "fr") return QStringLiteral("Espace");
+    return QStringLiteral("Space");
+}
+
 static void flog(const char *fmt, ...) {
     FILE *f = fopen("/tmp/rmkit-inject.log", "a");
     if (!f)
@@ -456,15 +494,22 @@ static void ensureLangHelper(QQmlEngine *engine) {
         "      if (mlen < 0) return false\n"
         "      var arr = []\n"
         "      for (var i = 0; i < mlen; i++) arr.push(m[i])\n"
-        "      if (arr.indexOf(\"zh_CN\") !== -1) return false\n" // 已注入过
+        "      var extra = [\"zh_CN\", \"zh_TW\", \"ja\", \"ko\"]\n"
+        "      var need = false\n"
+        "      for (var k = 0; k < extra.length; k++) if (arr.indexOf(extra[k]) === -1) need = true\n"
+        "      if (!need) return false\n" // 已注入过
         "      var old = dlg.display\n"                          // 先包 display 再改 model
         "      dlg.display = function(md) {\n"
-        "        return md === \"zh_CN\" ? \"\\u4e2d\\u6587\\uff08\\u7b80\\u4f53\\uff09\" : old(md)\n"
+        "        if (md === \"zh_CN\") return \"\\u4e2d\\u6587\\uff08\\u7b80\\u4f53\\uff09\"\n"
+        "        if (md === \"zh_TW\") return \"\\u4e2d\\u6587\\uff08\\u7e41\\u9ad4\\uff09\"\n"
+        "        if (md === \"ja\") return \"\\u65e5\\u672c\\u8a9e\"\n"
+        "        if (md === \"ko\") return \"\\ud55c\\uad6d\\uc5b4\"\n"
+        "        return old(md)\n"
         "      }\n"
         "      var selIdx = dlg.selectedIndex\n"
-        "      arr.push(\"zh_CN\")\n"
+        "      for (var k2 = 0; k2 < extra.length; k2++) if (arr.indexOf(extra[k2]) === -1) arr.push(extra[k2])\n"
         "      dlg.model = arr\n"
-        "      dlg.selectedIndex = selIdx >= 0 ? selIdx : arr.length - 1\n"
+        "      if (selIdx >= 0) dlg.selectedIndex = selIdx\n"
         "      return true\n"
         "    } catch (e) { console.warn(\"[lang] patch err: \" + e); return false }\n"
         "  }\n"
@@ -504,7 +549,7 @@ static void doInjectLanguage(QQmlEngine *engine) {
         QMetaObject::invokeMethod(g_langHelper, "patchLanguageDialog", Q_RETURN_ARG(QVariant, ret),
                                   Q_ARG(QVariant, QVariant::fromValue((QObject *)dlg)));
         if (ret.toBool())
-            fprintf(stderr, "[impl] 语言对话框已补 zh_CN\n");
+            fprintf(stderr, "[impl] 语言对话框已补 zh_CN/zh_TW/ja/ko\n");
     }
 }
 
@@ -1076,9 +1121,7 @@ static void doInject(QQmlEngine *engine) {
         // 否则沿用"高级"面板。用标记文件切换, 不用重编本库。
         const bool useSpace = access("/home/root/rmkit-cn/space/.primary", F_OK) == 0
                            && access("/home/root/rmkit-cn/space/shell/Space.qml", F_OK) == 0;
-        const bool enUI = uiLangIsEnglish();
-        const QString label = QString::fromUtf8(useSpace ? (enUI ? "Space"    : "空间")
-                                                         : (enUI ? "Advanced" : "高级"));
+        const QString label = sidebarLabel(useSpace);
         // 幂等: 已有 advancedItem 就不重复注入。系统设置里切了语言侧栏不重建, 等不到下次
         // 注入, 所以这里每轮 (2s) 顺手核对那个词, 变了就换 —— 面板内部本来就是实时的。
         // 外壳地址带上 Space.qml 的 mtime: 空间在设备上自更新换了外壳, 下次点开就是新的, 不用重启 xochitl

@@ -4,6 +4,7 @@
   "name_en": "Personalize",
   "version": "1.0.0",
   "description": "系统字体与休眠壁纸",
+  "description_en": "System fonts and sleep-screen wallpapers",
   "icon": "qrc:/ark/icons/cog",
   "entry": "main.qml",
   "category": "settings",

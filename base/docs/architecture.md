@@ -164,7 +164,7 @@ AI 配置写到 `/home/root/.local/share/rmkit-cn/ai_config.json`, advanced_pane
 | `qmd/zh_CN.rcc` + `qmd/zh_CN/` | 同上 |
 | `assets/chess/*.svg` `*.png` | `/home/root/xovi/exthome/qt-resource-rebuilder/chess/` |
 | `vendor/extensions/<ext>-<arch>.so` | `/home/root/xovi/extensions.d/<ext>.so` |
-| `dist/reMarkable_zh_CN.qm` | `/usr/share/remarkable/xochitl/translations/` |
+| `dist/reMarkable_{zh_CN,zh_TW,ja,ko}.qm` | `/usr/share/remarkable/xochitl/translations/` |
 | `systemd/*.service` `*.path` | `/etc/systemd/system/` (bind-mount 持久化) |
 | `systemd/zz-rmkit-cn.conf` | `/etc/systemd/system/xochitl.service.d/` (LD_PRELOAD 注入入口) |
 

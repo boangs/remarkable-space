@@ -1,0 +1,12 @@
+{
+  "title": "Eingabeschemata",
+  "refresh": "Aktualisieren",
+  "active": "Aktiv",
+  "hint": "Tippen zum Wechseln — tritt sofort in Kraft und bleibt nach einem Neustart erhalten. Wubi verwendet die Baishuang 86-Tabelle; tippen Sie z in Wubi, um ein Zeichen nach Pinyin nachzuschlagen.",
+  "svc_down": "Der Eingabemethoden-Dienst reagiert nicht",
+  "parse_failed": "Antwort konnte nicht gelesen werden",
+  "switching": "Wechseln…",
+  "switch_failed": "Wechsel fehlgeschlagen",
+  "_app_name": "Eingabemethode",
+  "_app_description": "Zwischen Pinyin- und Wubi-Eingabemethoden wechseln"
+}
