@@ -191,7 +191,8 @@ const state = {
 }
 
 // 安装包两处都有: GitHub Release (仓库公开) 和国内镜像 (GitHub 在国内常下不动)。用户在设置里
-// 选先从哪下, 下不动自动换另一处。每版助手只写死配套的发布标签 (构建时注入, 见 Makefile),
+// 选先从哪下, 下不动自动换另一处。空间固定走 latest, 不再要求每次发版都重打助手;
+// 只有 latest/space-version.txt 读不到时, 才用构建时注入的发布标签做显示兜底。
 // 不写死整包 sha256: 同版本替换安装包时, 已经发出去的助手照样能下能装。
 // Android 包几个月才变一次, 不跟着每版重传, 单独记它放在哪个发布标签下 (androidTag)。
 // 自己的服务器 (boangs.com) 留作最后的后备: 旧版助手只认那里。
@@ -205,7 +206,9 @@ const OWN_SERVER = 'https://boangs.com/space/'
 const BUNDLE_NAME: Record<Action, string> = { space: 'space-bundle.zip', android: 'android-rmppm-bundle.zip' }
 function bundleURLs(a: Action): string[] {
   const name = BUNDLE_NAME[a]
-  const tag = a === 'android' ? release.androidTag : release.tag
+  // 空间永远走 latest: 新正式版发布后, 老助手也能发现最新版并下载, 不必跟着重打助手。
+  // Android 仍按自己的发布标签取包 (大版本独立维护)。
+  const tag = a === 'android' ? release.androidTag : ''
   const gh = GITHUB + (tag ? 'download/' + tag + '/' : 'latest/download/') + name
   const cn = release.cnBase ? release.cnBase + (tag || 'latest') + '/' + name : ''
   const order = state.source === 'github' ? [gh, cn] : [cn, gh]
