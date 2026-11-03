@@ -25,4 +25,15 @@
   chmod 755 /home/root
   [ -d /home/root/.ssh ] && chmod 700 /home/root/.ssh
   [ -f /home/root/.ssh/authorized_keys ] && chmod 600 /home/root/.ssh/authorized_keys
+  # 语言包由商店独立管理 (系统语言包应用), 会随官方固件新增词条单独发版。
+  # 助手安装包里的 .qm 是打包时的版本, 可能比用户装的新版旧 —— 装过商店语言包就恢复它,
+  # 别把助手包里的旧翻译覆盖回去。标记文件由 langpack 的 install.sh 写入。
+  LP=/home/root/.local/share/rmkit-cn/space/apps/langpack/translations
+  if [ -f /home/root/rmkit-cn/.langpack_version ] && [ -d "$LP" ]; then
+      for lang in zh_CN zh_TW ja ko; do
+          [ -f "$LP/reMarkable_${lang}.qm" ] || continue
+          cp -f "$LP/reMarkable_${lang}.qm" /usr/share/remarkable/xochitl/translations/
+          cp -f "$LP/reMarkable_${lang}.qm" /home/root/rmkit-cn/static/
+      done
+  fi
   exit 0
