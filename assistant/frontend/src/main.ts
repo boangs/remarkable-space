@@ -12,6 +12,7 @@ type Info = {
   activeSlot: string; errcntA: number; errcntB: number; secboot: string; hasLSE: boolean
   rootFreeMB: number; homeFreeMB: number; haveXovi: boolean; rmkitInstalled: boolean; rmkitFW: string
   spaceInstalled: boolean; spaceActive: boolean; spaceVersion: string; androidVersion: string
+  langpackVersion?: string; langpackLatest?: string
   xochitlActive: boolean; inAndroidMode: boolean; androidInstalled: boolean; initIsWrapper: boolean
 }
 type BundleInfo = { path: string; component: string; version: string; created: string; notes: string; files: number; bytes: number }
@@ -45,6 +46,7 @@ const DICT = {
     export_tip: '设备切槽、开不了机、空间突然没了时用：只读收集版本、启动配置和最近几次开机的系统日志，存成一个文件发给开发者。不收集笔记和账号信息。',
     space: '空间', update: '更新', reinstall: '重新安装', install: '安装',
     installed: '已安装', up_to_date: '已是最新', can_update: '可更新到', not_installed: '未安装，下载 {0}',
+    langpack_update: '系统语言包 {0} 可用（空间 → 发现 → 系统）',
     approx_space: '约 135 MB', approx_android: '约 600 MB',
     dl_update: '下载并更新', dl_install: '下载并安装',
     space_desc: '中文界面、输入法、应用商店', android_desc: '双系统启动，开机时选进哪一个',
@@ -104,6 +106,7 @@ const DICT = {
     export_tip: 'For slot switches, boot failures or Space suddenly missing: collects versions, boot configuration and the last few boots\' system logs (read-only) into one file to send to the developer. No notes or account data.',
     space: 'Space', update: 'Update', reinstall: 'Reinstall', install: 'Install',
     installed: 'Installed', up_to_date: 'up to date', can_update: '→', not_installed: 'Not installed, downloads {0}',
+    langpack_update: 'Language pack {0} available (Space → Discover → System)',
     approx_space: 'about 135 MB', approx_android: 'about 600 MB',
     dl_update: 'Download and update', dl_install: 'Download and install',
     space_desc: 'Home screen, app catalog, Chinese UI and input method', android_desc: 'Dual boot, pick a system at startup',
@@ -357,6 +360,9 @@ function renderItem(i: Info, a: Action) {
   const upToDate = installed && cur !== '' && latest !== '' && versionCmp(cur, latest) >= 0
   const unknown = installed && (cur === '' || latest === '')
   const outdated = installed && !upToDate && !unknown
+  // 系统语言包独立于底座发版: 商店里有比设备新的版本 (或设备还没装过) 就提示一句。
+  const lpNew = isSpace && installed && !!i.langpackLatest &&
+    (!i.langpackVersion || versionCmp(i.langpackLatest, i.langpackVersion) > 0)
   const title = verbName(outdated ? t('update') : installed ? t('reinstall') : t('install'), label(a))
 
   let stateCell: string
@@ -376,7 +382,7 @@ function renderItem(i: Info, a: Action) {
           <h3>${label(a)}</h3>
           <p>${isSpace ? t('space_desc') : t('android_desc')}</p>
         </div>
-        <div class="stat">${stateCell}${ready ? `<span class="pending">${t('bundle')} ${mono(b!.version)}　${mb(b!.bytes)}</span>` : ''}</div>
+        <div class="stat">${stateCell}${ready ? `<span class="pending">${t('bundle')} ${mono(b!.version)}　${mb(b!.bytes)}</span>` : ''}${lpNew ? `<span class="pending">${t('langpack_update', i.langpackLatest!)}</span>` : ''}</div>
         <div class="acts">
           <button class="${runClass} act-run" data-a="${a}" ${busy}>${runText}</button>
           ${installed

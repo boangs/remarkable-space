@@ -39,7 +39,12 @@ type Info struct {
 	SpaceActive    bool   `json:"spaceActive"`    // 空间后端 space-server 在跑
 	RmkitFW        string `json:"rmkitFW"`        // rmkit-cn 上次安装时记录的固件版本
 	SpaceVersion   string `json:"spaceVersion"`   // 装进去的那个安装包的版本 (助手安装时写的)
-	XochitlActive  bool   `json:"xochitlActive"`
+	// 系统语言包 (商店应用 langpack) 的版本: 设备上装的是 LangpackVersion,
+	// 商店里最新的是 LangpackLatest (助手探测时补, 由设备本地商店索引取)。
+	// 只有跑商店安装脚本才会写 .langpack_version; 助手自带的是基线, 不算"已装"。
+	LangpackVersion string `json:"langpackVersion"`
+	LangpackLatest  string `json:"langpackLatest"`
+	XochitlActive   bool   `json:"xochitlActive"`
 
 	InAndroidMode    bool   `json:"inAndroidMode"`    // 当前是 Android 模式 (dropbear 应答)
 	AndroidInstalled bool   `json:"androidInstalled"` // 本槽已有单槽 Android 组件
@@ -72,6 +77,7 @@ echo homefree=$(df -kP /home 2>/dev/null | awk 'END{print $4}')
 [ -d /home/root/rmkit-cn/bin ] && echo rmkit=1
 echo rmkitfw=$(cat /home/root/rmkit-cn/.last_fw_version 2>/dev/null)
 echo spacever=$(cat /home/root/rmkit-cn/.space_version 2>/dev/null)
+echo langpackver=$(cat /home/root/rmkit-cn/.langpack_version 2>/dev/null)
 echo androidver=$(cat /home/root/rmkit-cn/.android_version 2>/dev/null)
 [ -f /home/root/rmkit-cn/space/shell/Space.qml ] && [ -f /home/root/rmkit-cn/space/.primary ] && echo space=1
 [ "$(cat /proc/1/comm 2>/dev/null)" = "systemd" ] && systemctl is-active remarkable-space >/dev/null 2>&1 && echo spaceactive=1
@@ -121,6 +127,7 @@ func Run(ctx context.Context, c *sshx.Client) (Info, error) {
 		SpaceActive:      kv["spaceactive"] == "1",
 		RmkitFW:          kv["rmkitfw"],
 		SpaceVersion:     kv["spacever"],
+		LangpackVersion:  kv["langpackver"],
 		XochitlActive:    kv["xochitl"] == "1",
 		InAndroidMode:    kv["androidmode"] == "1",
 		AndroidInstalled: kv["android"] == "1",

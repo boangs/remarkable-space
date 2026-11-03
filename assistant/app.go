@@ -4,6 +4,7 @@ import (
 	"github.com/boangs/remarkable-space/assistant/internal/i18n"
 
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -280,6 +281,11 @@ func (a *App) probeLocked() (*probe.Info, error) {
 		a.log(i18n.T("探测失败: ", "Probe failed: ") + err.Error())
 		return nil, err
 	}
+	// 语言包独立于底座发版 (商店应用 langpack)。底座自带的只是首次安装的基线,
+	// 有新版本时在界面上提示一句, 让用户去商店更新。
+	if info.RmkitInstalled {
+		info.LangpackLatest = a.langpackLatest()
+	}
 	a.info = &info
 	mode := "reMarkable"
 	if info.InAndroidMode {
@@ -288,6 +294,36 @@ func (a *App) probeLocked() (*probe.Info, error) {
 	a.log(fmt.Sprintf(i18n.T("设备: %s / %s / 固件 %s / 槽 %s / 模式 %s / rootfs 剩 %dMB / home 剩 %dMB", "Device: %s / %s / firmware %s / slot %s / mode %s / rootfs free %dMB / home free %dMB"),
 		info.Model, info.Arch, info.FWVersion, info.ActiveSlot, mode, info.RootFreeMB, info.HomeFreeMB))
 	return &info, nil
+}
+
+// langpackLatest 取商店里系统语言包的最新版本。
+// 商店索引接口要设备票, 助手拿不到 —— 让设备本地的 space-server 去拉 (它本来就在维护这份索引)。
+// 失败就返回空, 界面只是不显示提示, 不挡安装。
+func (a *App) langpackLatest() string {
+	if a.client == nil {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, 15*time.Second)
+	defer cancel()
+	res, err := a.client.Run(ctx, "wget -qO- --timeout=8 'http://127.0.0.1:8080/space/store' 2>/dev/null")
+	if err != nil {
+		return ""
+	}
+	var idx struct {
+		Apps []struct {
+			ID      string `json:"id"`
+			Version string `json:"version"`
+		} `json:"apps"`
+	}
+	if json.Unmarshal([]byte(res.Stdout), &idx) != nil {
+		return ""
+	}
+	for _, app := range idx.Apps {
+		if app.ID == "langpack" {
+			return app.Version
+		}
+	}
+	return ""
 }
 
 // Disconnect 断开。
