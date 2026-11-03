@@ -336,6 +336,9 @@ Rectangle {
         function localNow() { return space.localNow() }   // 按设备时区 (见 /space/apps 的 tzOffset) 的当前时间
         // 当前界面语言 (zh-CN / en)。跟随 reMarkable 系统设置, 应用不用自己判断。
         readonly property string lang: space.lang
+        // Qt locale 名 (zh_CN / en_US 等), 给 toLocaleDateString / Qt.locale 用。
+        // 外壳根节点有同名函数, 这里暴露给应用和小组件。
+        function qtLocaleName() { return space.qtLocaleName() }
         // 查本应用 i18n/<lang>.json 的词条; 缺词回落 en, 再回落 key 本身。
         // 不要用 qsTr —— 注入进来的 QML 查不到 Qt 的翻译表 (已验证), tr 走自己的词典。
         function tr(key, args) { return space.tr(key, args) }
