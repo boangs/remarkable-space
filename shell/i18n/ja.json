@@ -88,5 +88,7 @@
   "upd_rolled_back": "新しいバージョンを起動できなかったため、スペースは前のバージョンに戻りました。",
   "btn_downloading": "ダウンロード中…",
   "btn_installing": "インストール中…",
-  "install_busy": "{name} をインストール中です。完了後にもう一度お試しください。"
+  "install_busy": "{name} をインストール中です。完了後にもう一度お試しください。",
+  "store_group_fonts": "AI 手書きフォント",
+  "store_group_note_fonts": "AI がペンで回答を書くときの字形 · {n} 種類"
 }

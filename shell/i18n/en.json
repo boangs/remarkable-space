@@ -88,5 +88,7 @@
   "upd_rolled_back": "The new version didn't start, so Space went back to the previous one",
   "btn_downloading": "Downloading…",
   "btn_installing": "Installing…",
-  "install_busy": "Installing {name}, try again when it's done"
+  "install_busy": "Installing {name}, try again when it's done",
+  "store_group_fonts": "AI handwriting fonts",
+  "store_group_note_fonts": "Shapes used when AI answers with the pen · {n} fonts"
 }

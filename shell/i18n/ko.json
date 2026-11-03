@@ -88,5 +88,7 @@
   "upd_rolled_back": "새 버전이 시작되지 않아 스페이스가 이전 버전으로 돌아갔습니다.",
   "btn_downloading": "다운로드 중…",
   "btn_installing": "설치 중…",
-  "install_busy": "{name}을(를) 설치하는 중입니다. 완료 후 다시 시도하세요."
+  "install_busy": "{name}을(를) 설치하는 중입니다. 완료 후 다시 시도하세요.",
+  "store_group_fonts": "AI 손글씨 글꼴",
+  "store_group_note_fonts": "AI가 펜으로 답변을 쓸 때의 글자 모양 · {n}종"
 }

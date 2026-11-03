@@ -228,12 +228,31 @@ Rectangle {
         if (a.section) return a.section
         // 旧索引没有 section 时按已知字段兜底
         if (a.kind === "space" || a.category === "system") return "system"
-        if (a.id === "stickers" || String(a.id || "").indexOf("theme-") === 0) return "themes"
+        // 贴纸是常驻后台 + 挂进笔记界面的功能插件, 和 AI 同类; 主题栏只留改外观的 (主题包/字体)
+        if (a.id === "stickers") return "system"
+        if (String(a.id || "").indexOf("theme-") === 0) return "themes"
         return "apps"
+    }
+    // 主题栏里的专题目录: 条目多的时候收成一行 (目前是字体), 点进去再看列表
+    property string storeFolder: ""
+    function storeGroupOf(a) {
+        if (String(a.id || "").indexOf("font-") === 0 || a.hand_font) return "fonts"
+        return ""
+    }
+    function storeGroupName(g) { return space.st("store_group_" + g) }
+    function storeGroups() {
+        if (storeSection !== "themes") return []
+        var list = storeApps.filter(function (a) { return space.storeSectionOf(a) === "themes" })
+        var n = 0
+        for (var i = 0; i < list.length; i++) if (space.storeGroupOf(list[i]) === "fonts") n++
+        return n > 0 ? [{ id: "fonts", count: n }] : []
     }
     function storeList() {
         var sec = storeSection
-        return storeApps.filter(function (a) { return space.storeSectionOf(a) === sec })
+        var list = storeApps.filter(function (a) { return space.storeSectionOf(a) === sec })
+        if (sec !== "themes") return list
+        // 目录首页不铺开组内条目; 进了目录只显示该组
+        return list.filter(function (a) { return space.storeGroupOf(a) === space.storeFolder })
     }
     property var recentDoc: null      // 最近在读的文档 (/space/recent, 取自 xochitl 元数据)
     property string storeError: ""
@@ -1670,7 +1689,7 @@ Rectangle {
                                     width: parent.width - space.px(24); height: 3
                                     color: secItem.active ? space.th.text : "transparent"
                                 }
-                                MouseArea { anchors.fill: parent; onClicked: space.storeSection = secItem.modelData }
+                                MouseArea { anchors.fill: parent; onClicked: { space.storeFolder = ""; space.storeSection = secItem.modelData } }
                             }
                         }
                     }
@@ -1729,6 +1748,70 @@ Rectangle {
                     Layout.topMargin: space.vpx(16)
                     text: space.st("store_empty_" + space.storeSection)
                     font.pixelSize: space.fpx(24); color: space.th.textBody
+                }
+                // 专题目录行 (主题栏): 字体这类条目多, 收成一行, 点进去再看
+                Repeater {
+                    model: space.storeGroups()
+                    delegate: Item {
+                        id: folderRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: space.vpx(120)
+                        Rectangle { anchors.fill: parent; color: folderMouse.pressed ? space.th.press : "transparent" }
+                        MouseArea { id: folderMouse; anchors.fill: parent; onClicked: space.storeFolder = folderRow.modelData.id }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: space.px(20)
+                            Rectangle {
+                                Layout.preferredWidth: space.fpx(72); Layout.preferredHeight: space.fpx(72); radius: space.th.radius
+                                color: space.th.fill
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: space.fpx(40); height: width
+                                    source: space.icon("folder")
+                                    sourceSize.width: width; sourceSize.height: width
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+                                Text {
+                                    text: space.storeGroupName(folderRow.modelData.id)
+                                    font.pixelSize: space.fpx(28); elide: Text.ElideRight; Layout.fillWidth: true
+                                }
+                                Text {
+                                    text: space.st("store_group_note_" + folderRow.modelData.id, { n: folderRow.modelData.count })
+                                    font.pixelSize: space.fpx(22); color: space.th.text3; elide: Text.ElideRight; Layout.fillWidth: true
+                                }
+                            }
+                            Image {
+                                Layout.preferredWidth: space.fpx(28); Layout.preferredHeight: width
+                                source: space.icon("caret-right"); sourceSize.width: width; sourceSize.height: width
+                            }
+                        }
+                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: space.th.lineSoft }
+                    }
+                }
+                // 目录内: 顶部一行返回
+                Item {
+                    visible: space.storeSection === "themes" && space.storeFolder !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: space.vpx(88)
+                    Rectangle { anchors.fill: parent; color: backMouse.pressed ? space.th.press : "transparent" }
+                    MouseArea { id: backMouse; anchors.fill: parent; onClicked: space.storeFolder = "" }
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: space.px(12)
+                        Image {
+                            Layout.preferredWidth: space.fpx(26); Layout.preferredHeight: width
+                            source: space.icon("caret-right"); sourceSize.width: width; sourceSize.height: width
+                            rotation: 180
+                        }
+                        Text {
+                            text: space.storeGroupName(space.storeFolder)
+                            font.pixelSize: space.fpx(26); color: space.th.text3
+                        }
+                    }
                 }
                 Repeater {
                     model: space.storeList()

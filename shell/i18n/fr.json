@@ -88,5 +88,7 @@
   "upd_rolled_back": "La nouvelle version n’a pas démarré ; Espace est revenu à la version précédente.",
   "btn_downloading": "Téléchargement…",
   "btn_installing": "Installation…",
-  "install_busy": "{name} est en cours d’installation. Réessayez une fois terminé."
+  "install_busy": "{name} est en cours d’installation. Réessayez une fois terminé.",
+  "store_group_fonts": "Polices manuscrites IA",
+  "store_group_note_fonts": "Glyphes utilisés quand l'IA répond au stylet · {n} polices"
 }

@@ -88,5 +88,7 @@
   "upd_rolled_back": "新版本無法啟動，空間已回到之前的版本。",
   "btn_downloading": "下載中…",
   "btn_installing": "安裝中…",
-  "install_busy": "正在安裝 {name}，完成後再試一次。"
+  "install_busy": "正在安裝 {name}，完成後再試一次。",
+  "store_group_fonts": "AI 手寫字體",
+  "store_group_note_fonts": "AI 用筆寫回答時的字形 · {n} 款"
 }

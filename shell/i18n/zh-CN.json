@@ -88,5 +88,7 @@
   "upd_rolled_back": "新版本没能启动，已回到原来的版本",
   "btn_downloading": "下载中…",
   "btn_installing": "安装中…",
-  "install_busy": "正在装 {name}，装完再来"
+  "install_busy": "正在装 {name}，装完再来",
+  "store_group_fonts": "AI 手写字体",
+  "store_group_note_fonts": "AI 用笔写回答时的字形 · {n} 款"
 }

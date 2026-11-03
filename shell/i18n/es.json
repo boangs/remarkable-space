@@ -88,5 +88,7 @@
   "upd_rolled_back": "La nueva versión no arrancó; Espacio volvió a la versión anterior.",
   "btn_downloading": "Descargando…",
   "btn_installing": "Instalando…",
-  "install_busy": "Instalando {name}; inténtalo de nuevo cuando termine."
+  "install_busy": "Instalando {name}; inténtalo de nuevo cuando termine.",
+  "store_group_fonts": "Fuentes manuscritas IA",
+  "store_group_note_fonts": "Trazos que usa la IA al responder con el lápiz · {n} fuentes"
 }

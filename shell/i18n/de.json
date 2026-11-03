@@ -88,5 +88,7 @@
   "upd_rolled_back": "Die neue Version ließ sich nicht starten; Bereich ist zur vorherigen Version zurückgekehrt.",
   "btn_downloading": "Herunterladen…",
   "btn_installing": "Installieren…",
-  "install_busy": "{name} wird gerade installiert. Versuche es nach Abschluss erneut."
+  "install_busy": "{name} wird gerade installiert. Versuche es nach Abschluss erneut.",
+  "store_group_fonts": "KI-Handschriftfonts",
+  "store_group_note_fonts": "Schriftbild, wenn die KI mit dem Stift antwortet · {n} Schriften"
 }
