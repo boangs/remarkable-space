@@ -74,10 +74,18 @@
 
 ## 应用清单字段
 
+多语言支持没有改变 manifest 字段协议。`name` 和 `version` 是必填项；`name_en`、`description_en` 是可选的英文回退文案。
+外壳跟随设备当前界面语言，并通过 `space.lang` 提供给应用。外壳在 `shell/i18n/` 内置了 `en`、`de`、`fr`、`es`、
+`zh-CN`、`zh-TW`、`ja`、`ko` 词典。应用可在 `i18n/<lang>.json` 提供界面文案，通过 `space.tr(key)` 读取；缺少的界面词条
+回退到应用自己的 `i18n/en.json`。应用词典还可提供 `_app_name`、`_app_description`、`_launch_confirm` 这几个保留键。
+应用名称和简介缺少对应翻译时，回退到 manifest 中可选的英文文案，再回退到 `name` 或 `description`。这些翻译放在词典文件中，
+不是 manifest 新字段。
+
 ```jsonc
 {
-  "id": "weather",              // 小写字母数字, 唯一
+  "id": "weather",              // 唯一; 1-32 位小写字母、数字、- 或 _
   "name": "天气",
+  "version": "1.0.0",          // 必填
   "entry": "main.qml",          // 入口; 没有则走 launch
   "widget": "widget.qml",       // 可选, 首页小组件
   "widget_size": "hero|half",
