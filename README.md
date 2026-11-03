@@ -93,11 +93,21 @@ base layer moved into this repository on 2026-10-20.
 
 ## Manifest example
 
+The manifest schema has not changed for localization. `name` and `version` are required; `name_en` and
+`description_en` are optional English fallbacks. The shell follows the tablet's current interface language and
+exposes it to apps as `space.lang`. Shell translations live in `shell/i18n/`; an app can provide UI translations in
+`i18n/<lang>.json` (with `i18n/en.json` as the fallback). App dictionaries may also localize the reserved keys
+`_app_name`, `_app_description`, and `_launch_confirm`. These translations are files, not additional manifest
+fields.
+
 ```jsonc
 {
   "id": "weather",              // lowercase alphanumerics, unique
   "name": "天气",
   "name_en": "Weather",
+  "version": "1.0.0",          // required
+  "description": "天气预报",
+  "description_en": "Weather forecast",
   "entry": "main.qml",          // QML entry point; without it, use launch
   "widget": "widget.qml",       // optional home-screen widget
   "widget_size": "hero|half",
