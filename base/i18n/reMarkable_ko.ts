@@ -4236,7 +4236,7 @@ Try again in a little bit.</source>
         <source>Reading light</source>
         <translation>독서등</translation>
     </message>
-<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;amp;#8288;right&amp;amp;#xa0;corner.</source><translation>오른쪽 위 모서리에서 아래로 스와이프하면 빠른 설정에서 밝기를 조절할 수 있습니다.</translation></message><message><source>Screen refresh gesture</source><translation>화면 새로 고침 제스처</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>네 손가락으로 탭하거나 빠른 설정의 새로 고침 버튼을 사용하여 화면을 새로 고치고 이전 이미지나 필기 자국의 잔상을 지웁니다.</translation></message></context>
+<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;#8288;right&amp;#xa0;corner.</source><translation>오른쪽 위 모서리에서 아래로 스와이프하면 빠른 설정에서 밝기를 조절할 수 있습니다.</translation></message><message><source>Screen refresh gesture</source><translation>화면 새로 고침 제스처</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>네 손가락으로 탭하거나 빠른 설정의 새로 고침 버튼을 사용하여 화면을 새로 고치고 이전 이미지나 필기 자국의 잔상을 지웁니다.</translation></message></context>
 <context>
     <name>PincodeDialog</name>
     <message>
@@ -4266,7 +4266,7 @@ Try again in a little bit.</source>
         <source>Light and battery</source>
         <translation>조명 및 배터리</translation>
     </message>
-<message><source>Screen refresh gesture</source><translation>화면 새로 고침 제스처</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>네 손가락으로 탭하거나 빠른 설정의 새로 고침 버튼을 사용하여 화면을 새로 고치고 이전 이미지나 필기 자국의 잔상을 지웁니다.</translation></message></context>
+<message><source>Screen refresh gesture</source><translation>화면 새로 고침 제스처</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>네 손가락으로 탭하거나 빠른 설정의 새로 고침 버튼을 사용하여 화면을 새로 고치고 이전 이미지나 필기 자국의 잔상을 지웁니다.</translation></message><message><source>Make the brightness levels stronger. This will reduce battery life.</source><translation>밝기 수준을 높이면 배터리 소모가 빨라집니다.</translation></message></context>
 <context>
     <name>PincodePolicy</name>
     <message>

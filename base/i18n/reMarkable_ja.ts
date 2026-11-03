@@ -4236,7 +4236,7 @@ Try again in a little bit.</source>
         <source>Reading light</source>
         <translation>読書用ライト</translation>
     </message>
-<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;amp;#8288;right&amp;amp;#xa0;corner.</source><translation>右上隅から下にスワイプすると、クイック設定で明るさを調整できます。</translation></message><message><source>Screen refresh gesture</source><translation>画面リフレッシュのジェスチャー</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>4本指でタップするか、クイック設定の更新ボタンを使用して画面を更新し、以前の画像や筆跡の残像を消します。</translation></message></context>
+<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;#8288;right&amp;#xa0;corner.</source><translation>右上隅から下にスワイプすると、クイック設定で明るさを調整できます。</translation></message><message><source>Screen refresh gesture</source><translation>画面リフレッシュのジェスチャー</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>4本指でタップするか、クイック設定の更新ボタンを使用して画面を更新し、以前の画像や筆跡の残像を消します。</translation></message></context>
 <context>
     <name>PincodeDialog</name>
     <message>
@@ -4266,7 +4266,7 @@ Try again in a little bit.</source>
         <source>Light and battery</source>
         <translation>光とバッテリー</translation>
     </message>
-<message><source>Screen refresh gesture</source><translation>画面リフレッシュのジェスチャー</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>4本指でタップするか、クイック設定の更新ボタンを使用して画面を更新し、以前の画像や筆跡の残像を消します。</translation></message></context>
+<message><source>Screen refresh gesture</source><translation>画面リフレッシュのジェスチャー</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>4本指でタップするか、クイック設定の更新ボタンを使用して画面を更新し、以前の画像や筆跡の残像を消します。</translation></message><message><source>Make the brightness levels stronger. This will reduce battery life.</source><translation>明るさの上限を上げるとバッテリーの消費が早くなります。</translation></message></context>
 <context>
     <name>PincodePolicy</name>
     <message>

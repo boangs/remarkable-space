@@ -4280,7 +4280,7 @@ Try again in a little bit.</source>
         <source>Reading light</source>
         <translation>阅读灯</translation>
     </message>
-<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;amp;#8288;right&amp;amp;#xa0;corner.</source><translation>从右上角向下滑动，即可在快捷设置中调节亮度。</translation></message><message><source>Screen refresh gesture</source><translation>屏幕刷新手势</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>使用四指轻点或快捷设置中的刷新按钮，刷新屏幕并清除之前图像或笔迹的残影。</translation></message></context>
+<message><source>Manage the brightness level in Quick settings by swiping down in the top-&amp;#8288;right&amp;#xa0;corner.</source><translation>从右上角向下滑动，即可在快捷设置中调节亮度。</translation></message><message><source>Screen refresh gesture</source><translation>屏幕刷新手势</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>使用四指轻点或快捷设置中的刷新按钮，刷新屏幕并清除之前图像或笔迹的残影。</translation></message></context>
 <context>
     <name>PincodeDialog</name>
     <message>
@@ -4310,7 +4310,7 @@ Try again in a little bit.</source>
         <source>Light and battery</source>
         <translation>灯光与电池</translation>
     </message>
-<message><source>Screen refresh gesture</source><translation>屏幕刷新手势</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>使用四指轻点或快捷设置中的刷新按钮，刷新屏幕并清除之前图像或笔迹的残影。</translation></message></context>
+<message><source>Screen refresh gesture</source><translation>屏幕刷新手势</translation></message><message><source>Use a four-finger tap or the refresh button in quick settings, to refresh the screen and clear traces of earlier images or pen strokes.</source><translation>使用四指轻点或快捷设置中的刷新按钮，刷新屏幕并清除之前图像或笔迹的残影。</translation></message><message><source>Make the brightness levels stronger. This will reduce battery life.</source><translation>提高亮度上限会加快耗电。</translation></message></context>
 <context>
     <name>PincodePolicy</name>
     <message>
