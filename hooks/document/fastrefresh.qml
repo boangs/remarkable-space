@@ -280,11 +280,59 @@ Item {
         for (var i = 0; i < ch.length; i++) if (menuOpen(ch[i], depth + 1)) return true
         return false
     }
+    // 工具栏可以摆在上下左右, 位置存在系统配置里。摆在左/右/下时「…」按钮
+    // 正好落在翻页区边缘, 点它时 TapHandler 和系统按钮同时收到点击 —— 菜单和翻页
+    // 一起发生。按工具栏所在方向把对应边缘那条排除掉。
+    function toolbarPos() {
+        try {
+            var x = new XMLHttpRequest()
+            x.open("GET", "file:///home/root/.config/remarkable/xochitl.conf", false)
+            x.send()
+            var key = width > height ? "ToolbarLandscapePosition" : "ToolbarPortraitPosition"
+            var m = (x.responseText || "").match(new RegExp(key + "=(\\w+)"))
+            if (m) return m[1].toLowerCase()
+        } catch (e) {}
+        return "top"
+    }
+    // 逻辑按点击的"结果"判断: 点 ⋯ 时系统按钮和 TapHandler 会同时收到这次点击,
+    // 谁先谁后不确定。所以点击后先不翻, 等下一轮事件循环再看菜单有没有被这次
+    // 点击打开 —— 打开了就不翻, 没打开才翻。工具栏摆在哪一边都不用判断。
+    // 工具栏显示时, 它**对面**那个 ToolButton 的 visible=true, 收起后 false;
+    // 工具栏同侧的那个是「呼出工具栏」按钮, 恒可见, 不能用。
+    // 工具栏在左 → 看右上按钮; 在右 → 看左上按钮; 上下 → 也先按右上处理。
+    function toolbarShown() {
+        var mv = null, o = docView
+        for (; o; o = o.parent) { if (("" + o).indexOf("MainView") >= 0) { mv = o; break } }
+        if (!mv) return false
+        var right = toolbarPos() !== "right"
+        return anySideToolButton(mv, 0, right)
+    }
+    function anySideToolButton(o, depth, right) {
+        if (!o || depth > 12) return false
+        try {
+            if (("" + o).indexOf("ToolButton") >= 0 && o.visible && o.width > 0) {
+                var tl = o.mapToItem(root, 0, 0)
+                if (right ? tl.x > width * 0.75 : tl.x < width * 0.25) return true
+            }
+        } catch (e) {}
+        var ch = null
+        try { ch = o.children } catch (e) {}
+        for (var i = 0; ch && i < ch.length; i++) {
+            if (anySideToolButton(ch[i], depth + 1, right)) return true
+        }
+        return false
+    }
     function tapTurn(p) {
         if (!tapOn || !docView) return
-        var dir = p.x < width * 0.1 ? -1 : (p.x > width * 0.9 ? 1 : 0)
-        if (dir === 0 || p.y < 100) return                          // 中间 / 顶部工具栏那条留给系统
-        if (penClose || Date.now() - penLeftAt < 1000) return       // 拿着笔
+        var shown = toolbarShown()
+        var tp = toolbarPos()
+        var lEdge = (shown && tp === "left") ? 112 : 0
+        var rEdge = (shown && tp === "right") ? 112 : 0
+        var dir = 0
+        if (p.x >= lEdge && p.x < width * 0.25) dir = -1
+        else if (p.x > width * 0.75 && p.x <= width - rEdge) dir = 1
+        if (dir === 0 || p.y < 100) return
+        if (penClose || Date.now() - penLeftAt < 1000) return     // 拿着笔
         if (docView.subDialogOpen || menuOpen(docView, 0)) return   // 弹窗 / 菜单开着
         var n = docView.currentPage + dir
         if (n >= 0 && n < docView.pageCount) docView.openPage(n)
@@ -292,6 +340,8 @@ Item {
     TapHandler {
         enabled: root.tapOn
         acceptedDevices: PointerDevice.TouchScreen
+        // 被动监听 (DragThreshold): 系统工具栏按钮必须优先响应, 不能抢 grab。
+        // 代价是点按钮时我们也会收到 tap, 所以翻页区要避开最外侧的工具栏条。
         gesturePolicy: TapHandler.DragThreshold
         onTapped: (eventPoint, button) => root.tapTurn(eventPoint.position)
     }
