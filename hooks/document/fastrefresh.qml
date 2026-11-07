@@ -292,7 +292,34 @@ Item {
             var m = (x.responseText || "").match(new RegExp(key + "=(\\w+)"))
             if (m) return m[1].toLowerCase()
         } catch (e) {}
-        return "top"
+        return inferToolbarSide()
+    }
+    // 有些机型 (大屏 Paper Pro 实测) 的 xochitl.conf 里没有工具栏位置键;
+    // 按可见 ToolButton 贴在哪条边判断, 比默认 top 可靠。
+    function inferToolbarSide() {
+        var mv = null, o = docView
+        for (; o; o = o.parent) { if (("" + o).indexOf("MainView") >= 0) { mv = o; break } }
+        if (!mv) return "top"
+        var cnt = { left: 0, right: 0, top: 0, bottom: 0 }
+        function walk(x, depth) {
+            if (!x || depth > 12) return
+            try {
+                if (("" + x).indexOf("ToolButton") >= 0 && x.visible && x.width > 0) {
+                    var tl = x.mapToItem(root, 0, 0)
+                    if (tl.x < width * 0.1) cnt.left++
+                    else if (tl.x + x.width > width * 0.9) cnt.right++
+                    if (tl.y < height * 0.1) cnt.top++
+                    else if (tl.y + x.height > height * 0.9) cnt.bottom++
+                }
+            } catch (e) {}
+            var ch = null
+            try { ch = x.children } catch (e) {}
+            for (var i = 0; ch && i < ch.length; i++) walk(ch[i], depth + 1)
+        }
+        walk(mv, 0)
+        var best = "top", n = 0
+        for (var k in cnt) if (cnt[k] > n) { n = cnt[k]; best = k }
+        return best
     }
     // 逻辑按点击的"结果"判断: 点 ⋯ 时系统按钮和 TapHandler 会同时收到这次点击,
     // 谁先谁后不确定。所以点击后先不翻, 等下一轮事件循环再看菜单有没有被这次
