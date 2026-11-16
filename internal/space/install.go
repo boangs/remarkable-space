@@ -2,6 +2,7 @@ package space
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -494,12 +496,37 @@ func (r *Registry) unlinkHooks(appDir string) {
 // downloadPkg 下载应用包 / 更新包写进 f, 带取包凭证 hdr; 超过 limit 或 sha256 对不上都算失败。
 // onProgress(已下字节, 总字节) 给界面显示进度 (总字节 0 = 服务器没给 Content-Length)。
 func downloadPkg(url, sha256hex string, hdr http.Header, f *os.File, limit int64, onProgress func(int64, int64)) error {
-	// 连接 / 等响应头单独限时: Wi-Fi 连着却上不了外网时 15 秒就报错, 别干等到 5 分钟的总超时
+	// 连接 / 等响应头单独限时: Wi-Fi 连着却上不了外网时 15 秒就报错。
+	// 绝不能给整个请求设总超时: 手机热点 20KB/s 时 6.8MB 要 5 分钟以上, 总超时会把
+	// 正常的慢下载砍在 74% (2026-11-16 真机实测)。改成"停滞检测" —— 90 秒没有任何
+	// 新数据才算失败, 慢但持续的下载能下完。
 	tr := http.DefaultTransport.(*http.Transport).Clone()
 	tr.DialContext = (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext
 	tr.ResponseHeaderTimeout = 30 * time.Second
-	client := &http.Client{Timeout: 5 * time.Minute, Transport: tr}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	client := &http.Client{Transport: tr}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var lastData atomic.Int64
+	var stalled atomic.Bool
+	lastData.Store(time.Now().UnixNano())
+	go func() {
+		t := time.NewTicker(5 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				if time.Since(time.Unix(0, lastData.Load())) > 90*time.Second {
+					stalled.Store(true)
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("下载失败: 地址无效: %w", err)
 	}
@@ -519,9 +546,15 @@ func downloadPkg(url, sha256hex string, hdr http.Header, f *os.File, limit int64
 	total := resp.ContentLength
 	onProgress(0, total)
 	h := sha256.New()
-	cr := &countingReader{r: io.LimitReader(resp.Body, limit+1), on: func(n int64) { onProgress(n, total) }}
+	cr := &countingReader{r: io.LimitReader(resp.Body, limit+1), on: func(n int64) {
+		lastData.Store(time.Now().UnixNano())
+		onProgress(n, total)
+	}}
 	n, err := io.Copy(io.MultiWriter(f, h), cr)
 	if err != nil {
+		if stalled.Load() {
+			return fmt.Errorf("下载失败: 90 秒没有收到数据 (网络太慢或已断开), 已下载 %d%%", n*100/max(total, 1))
+		}
 		return fmt.Errorf("下载失败: %w", err)
 	}
 	if n > limit {
