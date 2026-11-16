@@ -90,5 +90,13 @@
   "btn_installing": "Instalando…",
   "install_busy": "Instalando {name}; inténtalo de nuevo cuando termine.",
   "store_group_fonts": "Fuentes manuscritas IA",
-  "store_group_note_fonts": "Trazos que usa la IA al responder con el lápiz · {n} fuentes"
+  "store_group_note_fonts": "Trazos que usa la IA al responder con el lápiz · {n} fuentes",
+  "net_auth_title": "Inicio de sesión de red",
+  "net_auth_checking": "Comprobando red…",
+  "net_auth_ok": "Red correcta, no hace falta iniciar sesión",
+  "net_auth_needed": "Este Wi-Fi requiere iniciar sesión",
+  "net_auth_connect": "Iniciar sesión",
+  "net_auth_busy": "Iniciando sesión…",
+  "net_auth_done": "Sesión iniciada, red conectada",
+  "net_auth_failed": "Error al iniciar sesión"
 }

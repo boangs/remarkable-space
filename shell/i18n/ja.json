@@ -90,5 +90,13 @@
   "btn_installing": "インストール中…",
   "install_busy": "{name} をインストール中です。完了後にもう一度お試しください。",
   "store_group_fonts": "AI 手書きフォント",
-  "store_group_note_fonts": "AI がペンで回答を書くときの字形 · {n} 種類"
+  "store_group_note_fonts": "AI がペンで回答を書くときの字形 · {n} 種類",
+  "net_auth_title": "ネットワークサインイン",
+  "net_auth_checking": "ネットワークを確認中…",
+  "net_auth_ok": "ネットワークは正常です。サインインは不要です",
+  "net_auth_needed": "この Wi-Fi はサインインが必要です",
+  "net_auth_connect": "サインイン",
+  "net_auth_busy": "サインイン中…",
+  "net_auth_done": "サインイン完了、ネットワーク接続済み",
+  "net_auth_failed": "サインイン失敗"
 }

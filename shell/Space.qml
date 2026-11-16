@@ -71,6 +71,12 @@ Rectangle {
     // Animation 实测只有黑白且刷得慢, 已去掉; 存过 animation 的配置读不进来, 回到默认快刷
     readonly property var screenModes: ["content", "ui", "pen", "mono"]
     property bool screenModeOpen: false   // 设置页档位列表是否展开
+    // 公开 Wi-Fi 的网页认证 (captive portal)
+    property bool netAuthOpen: false
+    property var netAuth: null
+    property bool netAuthBusy: false
+    property string netAuthMsg: ""
+    property var netAuthValues: ({})
     // 选档位: 必须放在外壳自己的函数里做 —— 收起列表会当场销毁被点的那一行,
     // 写在行的 onClicked 里的话, 收起之后的语句找不到 space, 配置没存上,
     // 下次重读配置 (开关应用时) 又变回原来的档位
@@ -218,6 +224,51 @@ Rectangle {
     }
     // kit 图标: 主题换了的用主题的
     function icon(name) { return (space.th.icons && space.th.icons[name]) || (space.kitDir + "/icons/" + name + ".svg") }
+
+    // ── 网络认证 ──
+    function visibleNetFields() {
+        if (!netAuth || !netAuth.fields) return []
+        return netAuth.fields.filter(function (f) { return f.type !== "hidden" })
+    }
+    function setNetField(name, value) {
+        var v = {}
+        for (var k in netAuthValues) v[k] = netAuthValues[k]
+        v[name] = value
+        netAuthValues = v
+    }
+    function openNetAuth() {
+        netAuthOpen = true
+        netAuth = null
+        netAuthBusy = false
+        netAuthMsg = st("net_auth_checking")
+        netAuthValues = {}
+        request("GET", baseUrl + "/space/net/captive", null, function (code, r) {
+            netAuthBusy = false
+            if (code !== 200 || !r) { netAuthMsg = st("net_auth_failed"); return }
+            netAuth = r
+            if (r.error) netAuthMsg = st("net_auth_failed") + ": " + r.error
+            else if (!r.needs_auth) netAuthMsg = st("net_auth_ok")
+            else netAuthMsg = st("net_auth_needed")
+            var v = {}
+            if (r.fields) for (var i = 0; i < r.fields.length; i++) if (r.fields[i].value) v[r.fields[i].name] = r.fields[i].value
+            netAuthValues = v
+        })
+    }
+    function submitNetAuth() {
+        if (!netAuth || !netAuth.action || netAuthBusy) return
+        netAuthBusy = true
+        netAuthMsg = st("net_auth_busy")
+        var fields = {}
+        for (var i = 0; i < netAuth.fields.length; i++) {
+            var f = netAuth.fields[i]
+            fields[f.name] = netAuthValues[f.name] !== undefined ? netAuthValues[f.name] : (f.value || "")
+        }
+        request("POST", baseUrl + "/space/net/login", { portal_url: netAuth.portal_url, action: netAuth.action, method: netAuth.method, fields: fields }, function (code, r) {
+            netAuthBusy = false
+            if (code === 200 && r && r.ok) { netAuthMsg = st("net_auth_done"); netAuth = null }
+            else netAuthMsg = (r && (r.error || r.detail)) ? (r.error || r.detail) : st("net_auth_failed")
+        })
+    }
     property var apps: []
     property string listError: ""
     property var storeApps: []
@@ -1971,6 +2022,15 @@ Rectangle {
                     th: space.th
                     Layout.fillWidth: true
                     ui: space.fs
+                    iconSource: space.icon("user")
+                    text: space.st("net_auth_title")
+                    detail: space.netAuth ? (space.netAuth.needs_auth ? space.st("net_auth_needed") : space.st("net_auth_ok")) : ""
+                    onClicked: space.openNetAuth()
+                }
+                Kit.SRow {
+                    th: space.th
+                    Layout.fillWidth: true
+                    ui: space.fs
                     iconSource: space.icon("clock")
                     text: space.st("set_timezone")
                     detail: space.tzLabel(space.tzName) + "\u3000" + space.tzOffsetText(space.tzOffset)
@@ -2194,6 +2254,89 @@ Rectangle {
                         ui: space.fs; text: space.askNotice ? space.st("got_it") : space.st("ok"); primary: true
                         onClicked: { if (space.askText !== "") space.askDone(true); else space.launch(space.confirmApp) }
                     }
+                }
+            }
+        }
+    }
+
+    // ── 网络认证 (公开 Wi-Fi 的网页登录) ──
+    Item {
+        id: netAuthPage
+        anchors.fill: parent
+        visible: space.netAuthOpen
+        z: 500
+        Rectangle { anchors.fill: parent; color: space.th.bg }
+        Text {
+            id: naTitle
+            x: space.fpx(24); y: space.vpx(20)
+            text: space.st("net_auth_title")
+            font.pixelSize: space.fpx(44); font.weight: Font.Medium
+            color: space.th.text
+        }
+        Text {
+            anchors.right: parent.right; anchors.rightMargin: space.fpx(24)
+            anchors.verticalCenter: naTitle.verticalCenter
+            text: "×"; font.pixelSize: space.fpx(48); color: space.th.text
+            MouseArea { anchors.fill: parent; anchors.margins: -space.fpx(18); onClicked: space.netAuthOpen = false }
+        }
+        Flickable {
+            anchors.top: naTitle.bottom; anchors.topMargin: space.vpx(20)
+            anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+            contentWidth: width
+            contentHeight: naCol.height + space.vpx(40)
+            clip: true
+            Column {
+                id: naCol
+                x: space.fpx(24)
+                width: parent.width - 2 * space.fpx(24)
+                spacing: space.vpx(14)
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: space.netAuthMsg
+                    font.pixelSize: space.fpx(24)
+                    color: space.th.text3
+                }
+                Repeater {
+                    model: space.visibleNetFields()
+                    delegate: Column {
+                        required property var modelData
+                        width: naCol.width
+                        spacing: space.vpx(6)
+                        Text {
+                            text: modelData.label ? modelData.label : modelData.name
+                            font.pixelSize: space.fpx(22)
+                            color: space.th.text3
+                        }
+                        Rectangle {
+                            width: parent.width; height: space.vpx(64)
+                            color: space.th.card
+                            border.color: space.th.lineFaint
+                            radius: space.fpx(6)
+                            TextInput {
+                                anchors.fill: parent; anchors.margins: space.fpx(12)
+                                verticalAlignment: TextInput.AlignVCenter
+                                font.pixelSize: space.fpx(26)
+                                color: space.th.text
+                                echoMode: modelData.type === "password" ? TextInput.Password : TextInput.Normal
+                                text: space.netAuthValues[modelData.name] || ""
+                                onTextChanged: space.setNetField(modelData.name, text)
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: !!(space.netAuth && space.netAuth.needs_auth && space.netAuth.action)
+                    width: parent.width; height: space.vpx(72)
+                    radius: space.fpx(8)
+                    color: space.th.text
+                    Text {
+                        anchors.centerIn: parent
+                        text: space.netAuthBusy ? space.st("net_auth_busy") : space.st("net_auth_connect")
+                        font.pixelSize: space.fpx(26)
+                        color: space.th.bg
+                    }
+                    MouseArea { anchors.fill: parent; enabled: !space.netAuthBusy; onClicked: space.submitNetAuth() }
                 }
             }
         }

@@ -90,5 +90,13 @@
   "btn_installing": "安装中…",
   "install_busy": "正在装 {name}，装完再来",
   "store_group_fonts": "AI 手写字体",
-  "store_group_note_fonts": "AI 用笔写回答时的字形 · {n} 款"
+  "store_group_note_fonts": "AI 用笔写回答时的字形 · {n} 款",
+  "net_auth_title": "网络认证",
+  "net_auth_checking": "正在检测网络…",
+  "net_auth_ok": "网络正常，无需认证",
+  "net_auth_needed": "这个 Wi-Fi 需要登录",
+  "net_auth_connect": "连接",
+  "net_auth_busy": "正在认证…",
+  "net_auth_done": "认证成功，网络已连接",
+  "net_auth_failed": "认证失败"
 }

@@ -130,6 +130,8 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("GET /space/themes", h.themeList)
 	mux.HandleFunc("GET /space/theme", h.themeActive)
 	mux.HandleFunc("PUT /space/theme", h.themeSet)
+	mux.HandleFunc("GET /space/net/captive", h.handleCaptive)
+	mux.HandleFunc("POST /space/net/login", h.handleCaptiveLogin)
 }
 
 // hooksDisabled 注入库熔断停用的挂载组件 (挂上后 xochitl 连续两次很快退出)。外壳拿它提示用户:

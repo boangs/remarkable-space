@@ -90,5 +90,13 @@
   "btn_installing": "安裝中…",
   "install_busy": "正在安裝 {name}，完成後再試一次。",
   "store_group_fonts": "AI 手寫字體",
-  "store_group_note_fonts": "AI 用筆寫回答時的字形 · {n} 款"
+  "store_group_note_fonts": "AI 用筆寫回答時的字形 · {n} 款",
+  "net_auth_title": "網路登入",
+  "net_auth_checking": "正在檢查網路…",
+  "net_auth_ok": "網路正常，無需登入",
+  "net_auth_needed": "此 Wi-Fi 需要登入",
+  "net_auth_connect": "登入",
+  "net_auth_busy": "正在登入…",
+  "net_auth_done": "已登入，網路已連線",
+  "net_auth_failed": "登入失敗"
 }

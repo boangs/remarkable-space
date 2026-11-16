@@ -90,5 +90,13 @@
   "btn_installing": "Installation…",
   "install_busy": "{name} est en cours d’installation. Réessayez une fois terminé.",
   "store_group_fonts": "Polices manuscrites IA",
-  "store_group_note_fonts": "Glyphes utilisés quand l'IA répond au stylet · {n} polices"
+  "store_group_note_fonts": "Glyphes utilisés quand l'IA répond au stylet · {n} polices",
+  "net_auth_title": "Connexion réseau",
+  "net_auth_checking": "Vérification du réseau…",
+  "net_auth_ok": "Réseau OK, aucun identifiant requis",
+  "net_auth_needed": "Ce Wi-Fi nécessite une connexion",
+  "net_auth_connect": "Se connecter",
+  "net_auth_busy": "Connexion…",
+  "net_auth_done": "Connecté, réseau disponible",
+  "net_auth_failed": "Échec de la connexion"
 }

@@ -90,5 +90,13 @@
   "btn_installing": "Installing…",
   "install_busy": "Installing {name}, try again when it's done",
   "store_group_fonts": "AI handwriting fonts",
-  "store_group_note_fonts": "Shapes used when AI answers with the pen · {n} fonts"
+  "store_group_note_fonts": "Shapes used when AI answers with the pen · {n} fonts",
+  "net_auth_title": "Network sign-in",
+  "net_auth_checking": "Checking network…",
+  "net_auth_ok": "Network is fine, no sign-in needed",
+  "net_auth_needed": "This Wi-Fi requires sign-in",
+  "net_auth_connect": "Connect",
+  "net_auth_busy": "Signing in…",
+  "net_auth_done": "Signed in, network connected",
+  "net_auth_failed": "Sign-in failed"
 }

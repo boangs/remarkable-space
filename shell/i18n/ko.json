@@ -90,5 +90,13 @@
   "btn_installing": "설치 중…",
   "install_busy": "{name}을(를) 설치하는 중입니다. 완료 후 다시 시도하세요.",
   "store_group_fonts": "AI 손글씨 글꼴",
-  "store_group_note_fonts": "AI가 펜으로 답변을 쓸 때의 글자 모양 · {n}종"
+  "store_group_note_fonts": "AI가 펜으로 답변을 쓸 때의 글자 모양 · {n}종",
+  "net_auth_title": "네트워크 로그인",
+  "net_auth_checking": "네트워크 확인 중…",
+  "net_auth_ok": "네트워크 정상, 로그인이 필요 없습니다",
+  "net_auth_needed": "이 Wi-Fi는 로그인이 필요합니다",
+  "net_auth_connect": "로그인",
+  "net_auth_busy": "로그인 중…",
+  "net_auth_done": "로그인 완료, 네트워크 연결됨",
+  "net_auth_failed": "로그인 실패"
 }
