@@ -1236,8 +1236,12 @@ static void maybeSimCapture(void) {
         return;
     static qint64 last = 0;
     static int seq = 0;
+    // 间隔可调: RM_SIM_CAPTURE_MS (默认 1000, 镜像窗口轮询用更小的值)
+    static int intervalMs = qEnvironmentVariableIntValue("RM_SIM_CAPTURE_MS");
+    if (intervalMs <= 0)
+        intervalMs = 1000;
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - last < 3000)
+    if (now - last < intervalMs)
         return;
     last = now;
     for (QWindow *w : QGuiApplication::topLevelWindows()) {
@@ -1298,8 +1302,32 @@ static void maybeSimCapture(void) {
     }
 }
 
+// 模拟器诊断 (RM_SIM_TEST_XHR=1): 用同步 XHR 请求空间服务, 打印 status —— 定位
+// "Can't reach the store (0)" 是网络层还是 QML 层问题。只跑一次。
+static void simTestXhr(QQmlEngine *engine) {
+    static bool done = false;
+    if (done || !qEnvironmentVariableIsSet("RM_SIM_TEST_XHR"))
+        return;
+    done = true;
+    QQmlExpression expr(engine->rootContext(), nullptr, QStringLiteral(
+        "(function() {"
+        "  var x = new XMLHttpRequest();"
+        "  var out = '';"
+        "  try {"
+        "    x.open('GET', 'http://127.0.0.1:8080/space/store', false);"
+        "    x.send();"
+        "    out = 'status=' + x.status + ' len=' + x.responseText.length;"
+        "  } catch (e) { out = 'EXC ' + e; }"
+        "  return out;"
+        "})()"));
+    const QVariant v = expr.evaluate();
+    fprintf(stderr, "[sim] XHR sync -> %s (err: %s)\n", qPrintable(v.toString()),
+            qPrintable(expr.error().toString()));
+}
+
 static void doInject(QQmlEngine *engine) {
     maybeSimCapture();
+    simTestXhr(engine);
     for (QWindow *w : QGuiApplication::topLevelWindows()) {
         auto *qw = qobject_cast<QQuickWindow *>(w);
         if (!qw || !qw->contentItem())
