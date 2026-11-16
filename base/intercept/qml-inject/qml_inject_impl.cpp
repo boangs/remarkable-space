@@ -5,6 +5,7 @@
 // 此时我们在 worker 线程, 必须 QMetaObject::invokeMethod marshal 到 GUI 主线程
 // 才能安全操作 QML 对象树。
 
+#include <QQmlExpression>
 #include <cstdarg>
 #include <cstdlib>
 #include <cstdio>
@@ -29,6 +30,8 @@
 #include <dirent.h>
 #include <algorithm>
 #include <QtCore/QCryptographicHash>
+#include <QtCore/QDateTime>
+#include <QtGui/QImage>
 #include <QtCore/QHash>
 #include <QtCore/QSet>
 #include <QtCore/QUrl>
@@ -520,8 +523,94 @@ static void ensureLangHelper(QQmlEngine *engine) {
         fprintf(stderr, "[impl] langHelper 创建失败: %s\n", comp.errorString().toUtf8().constData());
 }
 
+// ─── handwriting_ocr: 手写转换语言页注入「中文」───
+// 组件在点「手写转换语言」时由 Loader 实例化, 5s 扫描捕获。
+// 只在 model 末尾追加「中文」, 并 connect onSelected 信号把 Settings 写成 "zh";
+// stock 的 onSelected 照常执行 (选中文时它写的是 languageCode("中文") 的结果, 我们随后覆盖)。
+// 转换拦截在 QML 侧 (ItemSelection 注入)。
+static QObject *g_hwcHelper = nullptr;
+
+static void ensureHwcHelper(QQmlEngine *engine) {
+    if (g_hwcHelper)
+        return;
+    QQmlComponent comp(engine);
+    comp.setData(
+        "import QtQuick\n"
+        "QtObject {\n"
+        "  property string pickedLang: \"\"\n"
+        "  function patchHwc(dlg) {\n"
+        "    try {\n"
+        "      var t = String(dlg.title || \"\")\n"
+        "      if (t.indexOf(\"Handwriting conversion language\") < 0 && t.indexOf(\"\\u624b\\u5199\\u8f6c\\u6362\\u8bed\\u8a00\") < 0) return false\n"
+        "      var m = dlg.model\n"
+        "      if (!m || m.length === undefined) return false\n"
+        "      var arr = []\n"
+        "      for (var i = 0; i < m.length; i++) arr.push(m[i])\n"
+        "      if (arr.indexOf(\"\\u4e2d\\u6587\") >= 0) return false\n"
+        "      var cur = \"en\"\n"
+        "      try {\n"
+        "        var lx = new XMLHttpRequest()\n"
+        "        lx.open(\"GET\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
+        "        lx.send()\n"
+        "        if (lx.status === 200) { var lj = JSON.parse(lx.responseText); if (lj && lj.lang) cur = lj.lang }\n"
+        "      } catch (e) { console.warn(\"[hwc] 读状态失败: \" + e) }\n"
+        "      var sig = dlg.onSelected\n"
+        "      if (!sig || typeof sig.connect !== \"function\") { console.warn(\"[hwc] onSelected 不可 connect\"); return false }\n"
+        "      sig.connect(function(sel) {\n"
+        "        var lang = sel === \"\\u4e2d\\u6587\" ? \"zh\" : \"en\"\n"
+        "        try {\n"
+        "          var sx = new XMLHttpRequest()\n"
+        "          sx.open(\"PUT\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
+        "          sx.setRequestHeader(\"Content-Type\", \"application/json\")\n"
+        "          sx.send(JSON.stringify({ lang: lang }))\n"
+        "          console.warn(\"[hwc] 保存语言: \" + sel + \" -> \" + lang + \" HTTP \" + sx.status)\n"
+        "        } catch (e) { console.warn(\"[hwc] 保存失败: \" + e) }\n"
+        "        // 交给 C++ 在窗口上下文写系统 Settings (helper 里的 Settings 只读)\n"
+        "        pickedLang = lang\n"
+        "      })\n"
+        "      arr.push(\"\\u4e2d\\u6587\")\n"
+        "      dlg.model = arr\n"
+        "      if (cur === \"zh\") { dlg.selectedIndex = arr.length - 1; pickedLang = \"zh\" }\n"
+        "      console.warn(\"[hwc] 已注入中文, len=\" + arr.length + \" cur=\" + cur + \" sel=\" + dlg.selectedIndex)\n"
+        "      return true\n"
+        "    } catch (e) { console.warn(\"[hwc] patch err: \" + e); return false }\n"
+        "  }\n"
+        "  function patchCell(rootItem) {\n"
+        "    try {\n"
+        "      var cur = \"en\"\n"
+        "      try {\n"
+        "        var lx = new XMLHttpRequest()\n"
+        "        lx.open(\"GET\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
+        "        lx.send()\n"
+        "        if (lx.status === 200) { var lj = JSON.parse(lx.responseText); if (lj && lj.lang) cur = lj.lang }\n"
+        "      } catch (e) { return false }\n"
+        "      if (cur !== \"zh\") return false\n"
+        "      var changed = false\n"
+        "      function walk(it, depth) {\n"
+        "        if (!it || depth > 40) return\n"
+        "        try {\n"
+        "          var t = String(it.text || \"\")\n"
+        "          if ((t.indexOf(\"手写转换\") >= 0 || t.indexOf(\"Handwriting conversion\") >= 0) && it.status !== undefined) {\n"
+        "            if (String(it.status) !== \"中文\") { it.status = \"中文\"; changed = true }\n"
+        "          }\n"
+        "        } catch (e) {}\n"
+        "        var ch = it.children || []\n"
+        "        for (var i = 0; i < ch.length; i++) walk(ch[i], depth + 1)\n"
+        "      }\n"
+        "      walk(rootItem, 0)\n"
+        "      return changed\n"
+        "    } catch (e) { console.warn(\"[hwc] cell patch err: \" + e); return false }\n"
+        "  }\n"
+        "}\n",
+        QUrl());
+    g_hwcHelper = comp.create();
+    if (!g_hwcHelper)
+        fprintf(stderr, "[impl] hwcHelper 创建失败: %s\n", comp.errorString().toUtf8().constData());
+}
+
 static void doInjectLanguage(QQmlEngine *engine) {
     ensureLangHelper(engine);
+    ensureHwcHelper(engine);
     if (!g_langHelper)
         return;
     for (QWindow *w : QGuiApplication::topLevelWindows()) {
@@ -550,6 +639,42 @@ static void doInjectLanguage(QQmlEngine *engine) {
                                   Q_ARG(QVariant, QVariant::fromValue((QObject *)dlg)));
         if (ret.toBool())
             fprintf(stderr, "[impl] 语言对话框已补 zh_CN/zh_TW/ja/ko\n");
+        // 诊断: ItemSelection 的 convertSelection 方法是否存在 (qmd RENAME+INSERT 是否生效)
+        static bool selDiagDone = false;
+        if (!selDiagDone) {
+            QQuickItem *itSel = findByClass(qw->contentItem(), "ItemSelection");
+            if (itSel) {
+                selDiagDone = true;
+                const QMetaObject *mo2 = itSel->metaObject();
+                for (int i = 0; i < mo2->methodCount(); i++) {
+                    QString sig = QString::fromUtf8(mo2->method(i).methodSignature());
+                    if (sig.contains("convertSelection", Qt::CaseInsensitive))
+                        fprintf(stderr, "[ocr] ItemSelection method: %s\n", sig.toUtf8().constData());
+                }
+            }
+        }
+        // 设置页「手写转换」显示: Settings 的 setter 校验语言代码 (zh 不在系统列表,
+        // 写入被忽略), 所以直接改 Cell 的显示文本
+        if (g_hwcHelper) {
+            QVariant retC;
+            QMetaObject::invokeMethod(g_hwcHelper, "patchCell", Q_RETURN_ARG(QVariant, retC),
+                                      Q_ARG(QVariant, QVariant::fromValue((QObject *)qw->contentItem())));
+        }
+        // 手写转换语言页 (HWCLanguagePageWindow 的 SelectionComponent), 每个对象只 patch 一次
+        if (g_hwcHelper) {
+            static QList<QPointer<QObject>> hwcDone;
+            bool done = false;
+            for (int i = hwcDone.size() - 1; i >= 0; i--) {
+                if (hwcDone[i].isNull()) hwcDone.removeAt(i);
+                else if (hwcDone[i].data() == dlg) done = true;
+            }
+            if (!done) {
+                QVariant retH;
+                QMetaObject::invokeMethod(g_hwcHelper, "patchHwc", Q_RETURN_ARG(QVariant, retH),
+                                          Q_ARG(QVariant, QVariant::fromValue((QObject *)dlg)));
+                if (retH.toBool()) hwcDone.append(QPointer<QObject>(dlg));
+            }
+        }
     }
 }
 
@@ -1100,7 +1225,81 @@ static QQuickItem *sidebarGuide(QQuickItem *col) {
 
 // 幂等 + 静默: Sidebar 未实例化时静默返回(等下一轮), 已注入过就跳过。
 // 由 pw_inject 的 2s 重复定时器反复调用, 处理"开机时侧栏没建 / 导航后侧栏重建"。
+// 模拟器专用: 环境变量 RM_SIM_CAPTURE=1 时, 每 3 秒把每个可见 QQuickWindow 的渲染结果
+// 存成 PNG。grabWindow 走 Qt 自己的软件栅格, 不经过 SWTCON (设备 fb 口收到的是波形数据,
+// 不是画面, 见 memory「墨水屏刷新波形」)。真机没有这个环境变量, 零开销。
+static void maybeSimCapture(void) {
+    static int on = -1;
+    if (on < 0)
+        on = qEnvironmentVariableIsSet("RM_SIM_CAPTURE") ? 1 : 0;
+    if (!on)
+        return;
+    static qint64 last = 0;
+    static int seq = 0;
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - last < 3000)
+        return;
+    last = now;
+    for (QWindow *w : QGuiApplication::topLevelWindows()) {
+        auto *qw = qobject_cast<QQuickWindow *>(w);
+        if (!qw || !qw->isVisible())
+            continue;
+        // 模拟器: xochitl 认不出机型时窗口回退 rm2 的 1404x1872, QML 布局跟着错。
+        // 强制成 Move 的真实面板 954x1696, 让 QML 按正确尺寸排版。
+        if (qEnvironmentVariableIsSet("RM_SIM_SIZE")) {
+            const QSize want(954, 1696);
+            if (qw->size() != want)
+                qw->resize(want);
+        }
+        // 一次性打印 QML 根层级, 定位 1404x1872 的来源 (类名 + 宽高)
+        static bool dumped = false;
+        if (!dumped && qEnvironmentVariableIsSet("RM_SIM_SIZE")) {
+            dumped = true;
+            struct Dump {
+                static void go(QQuickItem *it, int depth) {
+                    if (!it || depth > 2)
+                        return;
+                    fprintf(stderr, "[sim] %*s%s %gx%g vis=%d\n", depth * 2, "",
+                            it->metaObject()->className(), it->width(), it->height(),
+                            int(it->isVisible()));
+                    for (QQuickItem *c : it->childItems())
+                        go(c, depth + 1);
+                }
+            };
+            Dump::go(qw->contentItem(), 0);
+            // 模拟器: 文档库为空时 xochitl 停在 Setup 向导; 强制隐藏 Setup, 露出主窗口
+            if (qEnvironmentVariableIsSet("RM_SIM_MAIN")) {
+                for (QQuickItem *c : qw->contentItem()->childItems()) {
+                    const QByteArray cn = c->metaObject()->className();
+                    if (cn.contains("SetupMainWindow") && c->isVisible())
+                        c->setVisible(false);
+                    else if (cn.contains("LegacyMainWindow") && !c->isVisible())
+                        c->setVisible(true);
+                }
+            }
+        }
+        const QImage img = qw->grabWindow();
+        if (img.isNull()) {
+            fprintf(stderr, "[sim] grab null (%s)\n", w->metaObject()->className());
+            continue;
+        }
+        fprintf(stderr, "[sim] win=%dx%d content=%dx%d screen=%dx%d dpr=%g img=%dx%d\n",
+                qw->width(), qw->height(),
+                qw->contentItem() ? int(qw->contentItem()->width()) : 0,
+                qw->contentItem() ? int(qw->contentItem()->height()) : 0,
+                qw->screen() ? qw->screen()->geometry().width() : 0,
+                qw->screen() ? qw->screen()->geometry().height() : 0,
+                double(qw->devicePixelRatio()), img.width(), img.height());
+        const QString path = QStringLiteral("/tmp/sim-grab-%1.png").arg(seq++);
+        if (img.save(path))
+            fprintf(stderr, "[sim] grab ok %s %dx%d\n", qPrintable(path), img.width(), img.height());
+        else
+            fprintf(stderr, "[sim] grab save fail %s\n", qPrintable(path));
+    }
+}
+
 static void doInject(QQmlEngine *engine) {
+    maybeSimCapture();
     for (QWindow *w : QGuiApplication::topLevelWindows()) {
         auto *qw = qobject_cast<QQuickWindow *>(w);
         if (!qw || !qw->contentItem())

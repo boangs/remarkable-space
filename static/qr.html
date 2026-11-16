@@ -181,6 +181,15 @@
       <label class="lbl">模型</label>
       <input type="text" id="ai-model" placeholder="gpt-4o-mini" autocomplete="off">
     </div>
+    <div class="form-row">
+      <label class="lbl">手写识别 AK</label>
+      <input type="password" id="ai-ocr-key" placeholder="百度 OCR API Key" autocomplete="off">
+    </div>
+    <div class="form-row">
+      <label class="lbl">手写识别 SK</label>
+      <input type="password" id="ai-ocr-secret" placeholder="百度 OCR Secret Key" autocomplete="off">
+    </div>
+    <p class="hint" style="text-align:left;margin:-6px 0 12px;">百度 OCR 的 AK/SK，把手写笔记转成文字（与上面的对话 API 无关）；留空保留原值</p>
     <button class="save" id="ai-save">保存</button>
     <p class="hint">保存后到平板「高级 → AI 设置」点测试连接</p>
   </div>
@@ -380,6 +389,8 @@ function initPage() {
   const aiUrl    = document.getElementById('ai-url');
   const aiKey    = document.getElementById('ai-key');
   const aiModel  = document.getElementById('ai-model');
+  const aiOcrKey = document.getElementById('ai-ocr-key');
+  const aiOcrSecret = document.getElementById('ai-ocr-secret');
   const aiSave   = document.getElementById('ai-save');
   const aiKeyToggle = document.getElementById('ai-key-toggle');
 
@@ -413,6 +424,11 @@ function initPage() {
         // key 故意不回填, 避免在公开环境暴露; 留空保留原值
         aiKey.value = '';
         aiKey.placeholder = j.key ? '已保存 (留空保留)' : 'sk-...';
+        // OCR AK/SK 同样不回填
+        aiOcrKey.value = '';
+        aiOcrSecret.value = '';
+        aiOcrKey.placeholder = j.ocr_key ? '已保存 (留空保留)' : '百度 OCR API Key';
+        aiOcrSecret.placeholder = j.ocr_secret ? '已保存 (留空保留)' : '百度 OCR Secret Key';
         // 根据当前 url+model 命中哪个预设
         const hit = Object.entries(PRESETS).find(([_, v]) => v.url === j.url && v.kind === currentKind);
         aiPreset.value = hit ? hit[0] : 'custom';
@@ -429,6 +445,8 @@ function initPage() {
       url:   aiUrl.value.trim(),
       key:   aiKey.value,        // 不 trim, 保留原始 key
       model: aiModel.value.trim(),
+      ocr_key: aiOcrKey.value,
+      ocr_secret: aiOcrSecret.value,
     });
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', '/ai-config');

@@ -630,7 +630,7 @@
         <source>Yellow</source>
         <translation>Gelb</translation>
     </message>
-</context>
+<message><source>Cyan</source><translation>Cyan</translation></message><message><source>Magenta</source><translation>Magenta</translation></message></context>
 <context>
     <name>AdjustViewPopup</name>
     <message>

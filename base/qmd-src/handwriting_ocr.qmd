@@ -1,0 +1,67 @@
+; rmkit-cn: 手写转换语言选「中文」后, 文档「转换为文本」走百度 OCR。
+; 「中文」项本身由空间运行时注入库 (qml_inject_impl) 加进语言页, 见 intercept/qml-inject。
+; 这里只替换 ItemSelection.convertSelection: 语言是 "zh" 时截取选区 → POST /ai-ocr → 插入文本;
+; 其它语言调用原名 convertSelectionOriginal (系统 MyScript 流程不变)。
+
+AFFECT /qml/device/view/documentview/ItemSelection.qml
+    TRAVERSE Item#root
+        RENAME convertSelection TO convertSelectionOriginal
+        INSERT {
+            function convertSelection(position) {
+                console.warn("RMH-OCR: convertSelection enter")
+                var rmhLang = ""
+                try {
+                    var lx = new XMLHttpRequest()
+                    lx.open("GET", "http://127.0.0.1:9190/ai-ocr-lang", false)
+                    lx.send()
+                    if (lx.status === 200) { var lj = JSON.parse(lx.responseText); rmhLang = lj && lj.lang }
+                } catch (e) { console.warn("RMH-OCR: 读语言失败 " + e) }
+                if (rmhLang === "zh" && selectionHandler && selectionHandler.viewSelectionRect) {
+                    var sr = selectionHandler.viewSelectionRect
+                    var host = root.Window.window ? root.Window.window.contentItem : null
+                    if (sr.width > 0 && sr.height > 0 && host) {
+                        var p0 = selectionHandler.mapToItem(host, sr.x, sr.y)
+                        var p1 = selectionHandler.mapToItem(host, sr.x + sr.width, sr.y + sr.height)
+                        // 先同步让后台截屏保存 (此时墨迹还在), 再删墨迹, 避免截图空白
+                        var snapId = ""
+                        try {
+                            var sx = new XMLHttpRequest()
+                            sx.open("POST", "http://127.0.0.1:9190/ai-ocr-snap", false)
+                            sx.send()
+                            if (sx.status === 200) { var sj = JSON.parse(sx.responseText); snapId = (sj && sj.id) || "" }
+                            else console.warn("RMH-OCR: snap HTTP " + sx.status)
+                        } catch (e) { console.warn("RMH-OCR: snap err " + e) }
+                        sceneView.controller.deleteSelectedItems(sceneView.controller.currentLayer)
+                        forceMoveToolRequested()
+                        endSelection()
+                        if (!snapId) return
+                        var xhr = new XMLHttpRequest()
+                        xhr.open("POST", "http://127.0.0.1:9190/ai-ocr")
+                        xhr.setRequestHeader("Content-Type", "application/json")
+                        xhr.onreadystatechange = function() {
+                            if (xhr.readyState !== 4) return
+                            if (xhr.status !== 200) { console.warn("RMH-OCR: HTTP " + xhr.status + " " + xhr.responseText); return }
+                            var j = null
+                            try { j = JSON.parse(xhr.responseText) } catch (e) {}
+                            if (!j || typeof j.text !== "string" || j.text.length === 0) { console.warn("RMH-OCR: empty result"); return }
+                            var ctrl = root.controller
+                            if (!ctrl) return
+                            try { ctrl.clearSelectedItems() } catch (e) {}
+                            // 模仿系统 HWC 完成回调: 光标移到选区位置 → 剪贴板放文本 → pasteText 插入
+                            try {
+                                var scenePos = tileManager.viewToScene(Qt.point(position.x, position.y + 50))
+                                ctrl.setCursorPosition(scenePos, SceneController.MoveAnchor, SceneController.OverscrollAlwaysAllowed)
+                                Clipboard.setTextFromString(j.text)
+                                ctrl.pasteText(Clipboard.text, SceneController.KeepStyle, SceneController.MergeWithPreviousAction)
+                                console.warn("RMH-OCR: pasted " + j.text.length + " chars")
+                            } catch (e) { console.warn("RMH-OCR paste err: " + e) }
+                        }
+                        xhr.send(JSON.stringify({ id: snapId, x: Math.round(p0.x), y: Math.round(p0.y), w: Math.round(p1.x - p0.x), h: Math.round(p1.y - p0.y) }))
+                        return
+                    }
+                }
+                root.convertSelectionOriginal(position)
+            }
+        }
+    END TRAVERSE
+END AFFECT
