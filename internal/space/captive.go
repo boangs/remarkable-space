@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -97,6 +98,11 @@ func detectCaptiveAt(ctx context.Context, probes []string) captiveInfo {
 			if !looksLikePortal(body) {
 				return captiveInfo{NeedsAuth: false}
 			}
+			// 部分门户 (Sitech 等) 劫持时直接 200 + JS 跳转, 没有 Location 头,
+			// 先从跳转页里抽出真正的门户地址, 否则会把探测地址当成门户页解析。
+			if target := extractRedirectTarget(body, probe); target != "" {
+				return fetchPortal(ctx, target)
+			}
 			return fetchPortal(ctx, probe)
 		}
 		lastErr = fmt.Errorf("探测返回 HTTP %d", status)
@@ -127,6 +133,27 @@ func looksLikePortal(body []byte) bool {
 		}
 	}
 	return false
+}
+
+// 劫持页里常见的 JS 跳转写法: location.href="..." / location.replace("...") / location="..."
+var jsRedirectRe = regexp.MustCompile(`(?i)location(?:\.href)?\s*(?:=|\.replace\()\s*["']([^"']+)["']`)
+
+// extractRedirectTarget 从 "200 + JS 跳转" 型劫持页里提取真正的门户地址。
+func extractRedirectTarget(body []byte, base string) string {
+	if m := jsRedirectRe.FindSubmatch(body); m != nil {
+		return resolveURL(base, string(m[1]))
+	}
+	// meta refresh: <meta http-equiv="refresh" content="0;url=...">
+	low := strings.ToLower(string(body))
+	if idx := strings.Index(low, `http-equiv="refresh"`); idx >= 0 {
+		if u := strings.Index(low[idx:], "url="); u >= 0 {
+			rest := low[idx+u+4:]
+			if end := strings.IndexAny(rest, `"' >`); end > 0 {
+				return resolveURL(base, rest[:end])
+			}
+		}
+	}
+	return ""
 }
 
 // fetchPortal 抓门户页面并解析出表单。

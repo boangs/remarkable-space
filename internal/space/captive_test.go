@@ -123,3 +123,32 @@ func TestDetectAndLogin(t *testing.T) {
 		t.Fatalf("认证后仍判定需要认证: %+v", after)
 	}
 }
+
+// 200 + JS 跳转型门户 (Sitech 实测): 劫持页没有 Location 头, 真正的门户地址
+// 在 <script>location.href="..."</script> 里, 必须抽出来再解析表单。
+func TestDetectJSRedirect(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/generate_204", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=GBK")
+		_, _ = w.Write(gbk(`<html><head><script type="text/javascript">location.href="/portal"</script></head><body></body></html>`))
+	})
+	mux.HandleFunc("/portal", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=GBK")
+		_, _ = w.Write(gbk(portalHTML))
+	})
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	info := detectCaptiveAt(ctx, []string{ts.URL + "/generate_204"})
+	if !info.NeedsAuth {
+		t.Fatalf("应判定需要认证: %+v", info)
+	}
+	if !strings.HasSuffix(info.PortalURL, "/portal") {
+		t.Fatalf("portal_url 应从 JS 跳转里解析: %+v", info)
+	}
+	if info.Title == "" || len(info.Fields) == 0 {
+		t.Fatalf("门户表单没解析出来: %+v", info)
+	}
+}
