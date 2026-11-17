@@ -1,7 +1,20 @@
-; rmkit-cn: 手写转换语言选「中文」后, 文档「转换为文本」走百度 OCR。
-; 「中文」项本身由空间运行时注入库 (qml_inject_impl) 加进语言页, 见 intercept/qml-inject。
-; 这里只替换 ItemSelection.convertSelection: 语言是 "zh" 时截取选区 → POST /ai-ocr → 插入文本;
-; 其它语言调用原名 convertSelectionOriginal (系统 MyScript 流程不变)。
+; rmkit-cn 选区文字识别: 截图路线 + 官方落地链。
+;
+; 为什么是截图而不是 .rm: xochitl 的笔迹先缓存在内存, .rm 落盘滞后 —
+; 刚写完就圈选时磁盘里还没有最新笔画 (2026-11-16 实测: 选区 y=720,
+; 磁盘 .rm 墨迹只到 y=208)。整页识别没有这个竞态 (页面早已写完), 继续走
+; .rm 笔画渲染; 选区只能截屏。
+;
+; 顺序关键: 空间截图是异步的 (下一帧才拍), 所以删墨迹必须等
+; /ai-ocr 结果回来之后 — 之前"先删后识别"会把空白图送去识别 (实测全空)。
+; 识别失败则不删, 墨迹自然保留, 也不需要 undo。
+;
+; 提示全部复用官方 HwcNotificationBar 译文 (qsTranslate, 跟随系统语言);
+; 成功后按官方选区流程: 删墨迹 → 关选区 → conversionFinished(position)
+; 由官方 ConvertToText 完成移动光标 + pasteText 插入, 完成时官方向来无提示。
+;
+; 防抖: id=rmh-ocr 的常驻通知在, 说明识别还在跑 (同时挡住同步截屏连点
+; 造成的主线程长时间阻塞, 防 watchdog)。
 
 AFFECT /qml/device/view/documentview/ItemSelection.qml
     TRAVERSE Item#root
@@ -16,51 +29,106 @@ AFFECT /qml/device/view/documentview/ItemSelection.qml
                     lx.send()
                     if (lx.status === 200) { var lj = JSON.parse(lx.responseText); rmhLang = lj && lj.lang }
                 } catch (e) { console.warn("RMH-OCR: 读语言失败 " + e) }
-                if (rmhLang === "zh" && selectionHandler && selectionHandler.viewSelectionRect) {
-                    var sr = selectionHandler.viewSelectionRect
-                    var host = root.Window.window ? root.Window.window.contentItem : null
-                    if (sr.width > 0 && sr.height > 0 && host) {
-                        var p0 = selectionHandler.mapToItem(host, sr.x, sr.y)
-                        var p1 = selectionHandler.mapToItem(host, sr.x + sr.width, sr.y + sr.height)
-                        // 先同步让后台截屏保存 (此时墨迹还在), 再删墨迹, 避免截图空白
+                if (rmhLang !== "zh" || !selectionHandler || !selectionHandler.viewSelectionRect) {
+                    root.convertSelectionOriginal(position)
+                    return
+                }
+                var rmhNotifyHost = null
+                try {
+                    var p = root.parent
+                    while (p && !rmhNotifyHost) {
+                        if (p.rmhNotify) rmhNotifyHost = p
+                        p = p.parent
+                    }
+                } catch (e) {}
+                var rmhNotify = function(txt, icon, persistent) {
+                    if (!rmhNotifyHost) return
+                    try { rmhNotifyHost.rmhNotify(txt, icon, persistent) }
+                    catch (e) { console.warn("RMH-OCR: 通知失败 " + e) }
+                }
+                var rmhBusy = false
+                try {
+                    rmhBusy = rmhNotifyHost && rmhNotifyHost.notificationQueue
+                              && rmhNotifyHost.notificationQueue.contains("rmh-ocr")
+                } catch (e) {}
+                if (rmhBusy) {
+                    console.warn("RMH-OCR: 识别进行中, 忽略重复触发")
+                    return
+                }
+                var sr = selectionHandler.viewSelectionRect
+                var host = root.Window.window ? root.Window.window.contentItem : null
+                if (!(sr.width > 0 && sr.height > 0 && host)) {
+                    root.convertSelectionOriginal(position)
+                    return
+                }
+                var p0 = selectionHandler.mapToItem(host, sr.x, sr.y)
+                var p1 = selectionHandler.mapToItem(host, sr.x + sr.width, sr.y + sr.height)
+                rmhNotify(qsTranslate("HwcNotificationBar", "Converting to text (%1)").arg("中文"), "", true)
+                // 隐藏选区边框和手柄再截图 (只隐藏 selectionBorder, 保留
+                // selectionPreview —— 那个才画着选区里的墨迹; 隐藏整个
+                // selectionHandler 会让选区区域整个变白, 百度收到空图)。
+                var rmhHideSel = function() {
+                    try { selectionHandler.selectionRect.visible = true } catch (e) {}
+                }
+                try { selectionHandler.selectionRect.visible = false } catch (e) {}
+                var rmhTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 350; repeat: false; running: true }', root, "rmhSnapTimer")
+                rmhTimer.triggered.connect(function() {
+                    rmhTimer.destroy()
+                    var sx = new XMLHttpRequest()
+                    sx.open("POST", "http://127.0.0.1:9190/ai-ocr-snap")
+                    sx.onreadystatechange = function() {
+                        if (sx.readyState !== 4) return
+                        rmhHideSel()
                         var snapId = ""
-                        try {
-                            var sx = new XMLHttpRequest()
-                            sx.open("POST", "http://127.0.0.1:9190/ai-ocr-snap", false)
-                            sx.send()
-                            if (sx.status === 200) { var sj = JSON.parse(sx.responseText); snapId = (sj && sj.id) || "" }
-                            else console.warn("RMH-OCR: snap HTTP " + sx.status)
-                        } catch (e) { console.warn("RMH-OCR: snap err " + e) }
-                        sceneView.controller.deleteSelectedItems(sceneView.controller.currentLayer)
-                        forceMoveToolRequested()
-                        endSelection()
-                        if (!snapId) return
+                        if (sx.status === 200) { try { var sj = JSON.parse(sx.responseText); snapId = (sj && sj.id) || "" } catch (e) {} }
+                        else console.warn("RMH-OCR: snap HTTP " + sx.status)
+                        if (!snapId) {
+                            rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert text. Please check your Wi-Fi connection."), "qrc:/ark/icons/wifi_x", false)
+                            return
+                        }
                         var xhr = new XMLHttpRequest()
                         xhr.open("POST", "http://127.0.0.1:9190/ai-ocr")
                         xhr.setRequestHeader("Content-Type", "application/json")
                         xhr.onreadystatechange = function() {
                             if (xhr.readyState !== 4) return
-                            if (xhr.status !== 200) { console.warn("RMH-OCR: HTTP " + xhr.status + " " + xhr.responseText); return }
+                            if (xhr.status !== 200) {
+                                console.warn("RMH-OCR: HTTP " + xhr.status + " " + xhr.responseText)
+                                rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert text. Please check your Wi-Fi connection."), "qrc:/ark/icons/wifi_x", false)
+                                return
+                            }
                             var j = null
                             try { j = JSON.parse(xhr.responseText) } catch (e) {}
-                            if (!j || typeof j.text !== "string" || j.text.length === 0) { console.warn("RMH-OCR: empty result"); return }
-                            var ctrl = root.controller
-                            if (!ctrl) return
-                            try { ctrl.clearSelectedItems() } catch (e) {}
-                            // 模仿系统 HWC 完成回调: 光标移到选区位置 → 剪贴板放文本 → pasteText 插入
+                            if (!j || typeof j.text !== "string" || j.text.length === 0) {
+                                console.warn("RMH-OCR: empty result")
+                                rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert notes"), "qrc:/ark/icons/information_circle", false)
+                                return
+                            }
                             try {
-                                var scenePos = tileManager.viewToScene(Qt.point(position.x, position.y + 50))
-                                ctrl.setCursorPosition(scenePos, SceneController.MoveAnchor, SceneController.OverscrollAlwaysAllowed)
                                 Clipboard.setTextFromString(j.text)
-                                ctrl.pasteText(Clipboard.text, SceneController.KeepStyle, SceneController.MergeWithPreviousAction)
-                                console.warn("RMH-OCR: pasted " + j.text.length + " chars")
-                            } catch (e) { console.warn("RMH-OCR paste err: " + e) }
+                                console.warn("RMH-OCR: 已复制 " + j.text.length + " 字, 发 conversionFinished 交给官方插入")
+                            } catch (e) { console.warn("RMH-OCR clipboard err: " + e) }
+                            // 识别成功后再删墨迹 (截图已用完), 然后照官方顺序关选区
+                            try {
+                                sceneView.controller.deleteSelectedItems(sceneView.controller.currentLayer)
+                                console.warn("RMH-OCR: 已删除选中墨迹")
+                            } catch (e) { console.warn("RMH-OCR: deleteSelectedItems err " + e) }
+                            try {
+                                forceMoveToolRequested()
+                                root.endSelection()
+                            } catch (e) { console.warn("RMH-OCR: endSelection err " + e) }
+                            // 官方落地链: conversionFinished → ConvertToText 移动光标 + pasteText
+                            try {
+                                rmhNotify("", "", false)
+                                root.conversionFinished(position)
+                                console.warn("RMH-OCR: 已发 conversionFinished")
+                            } catch (e) {
+                                console.warn("RMH-OCR: conversionFinished err " + e)
+                            }
                         }
                         xhr.send(JSON.stringify({ id: snapId, x: Math.round(p0.x), y: Math.round(p0.y), w: Math.round(p1.x - p0.x), h: Math.round(p1.y - p0.y) }))
-                        return
                     }
-                }
-                root.convertSelectionOriginal(position)
+                    sx.send()
+                })
             }
         }
     END TRAVERSE

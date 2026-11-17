@@ -1,0 +1,141 @@
+; rmkit-cn 整页文字识别: 只在「识别服务」这一层换目的地 —— 官方
+; convertPages 的骨架、语言选择页、底部 NotificationBar 提示全部保留,
+; 仅当语言是 "zh" 时把发往 MyScript 的识别请求换成 ai-server 的百度 OCR。
+;
+; 结果仍进剪贴板 (3.30.0.111 的 C++ 文本插入 API 会 SIGSEGV, 待逐个验签后
+; 再恢复官方「作为新页插入」的落地方式)。
+;
+; 提示复用官方 NotificationQueue (DocumentView 内 NotificationBar 渲染),
+; 就是原系统「已复制到剪贴板」那种屏幕最下面的状态条, 不做自制 toast。
+; 防抖: 处理中有一条 id=rmh-ocr 的常驻通知, 重复触发直接忽略 (防百度 QPS 502)。
+
+AFFECT /qml/device/view/documentview/DocumentView.qml
+    TRAVERSE FocusScope#root
+        RENAME convertPages TO convertPagesOriginal
+        INSERT {
+            function rmhNotify(txt, icon, persistent, actionText, onAction) {
+                try {
+                    root.notificationQueue.dequeue("rmh-ocr")
+                    root.notificationQueue.dequeue("rmh-ocr-done")
+                    if (!txt) return
+                    var n = {
+                        "id": persistent ? "rmh-ocr" : "rmh-ocr-done",
+                        "text": txt,
+                        "context": Notification.Context.Document,
+                        // 带按钮的通知必须是 Persistent —— 官方的"清除剪贴板"通知
+                        // 就是 Persistent + actionText; Longest(自动消失)不渲染按钮
+                        "duration": (persistent || actionText) ? Notification.Duration.Persistent : Notification.Duration.Longest
+                    }
+                    if (icon) n.icon = icon
+                    if (actionText) {
+                        n.actionText = actionText
+                        n.onClicked = onAction
+                    }
+                    root.notificationQueue.enqueue(n)
+                } catch (e) { console.warn("RMH-PAGE: 通知失败 " + e) }
+            }
+
+            function convertPages(pages, triggeredFrom) {
+                var rmhLang = ""
+                try {
+                    var lx = new XMLHttpRequest()
+                    lx.open("GET", "http://127.0.0.1:9190/ai-ocr-lang", false)
+                    lx.send()
+                    if (lx.status === 200) { var lj = JSON.parse(lx.responseText); rmhLang = lj && lj.lang }
+                } catch (e) { console.warn("RMH-PAGE: 读语言失败 " + e) }
+                console.warn("RMH-PAGE: convertPages enter lang=" + rmhLang
+                             + " pages=" + JSON.stringify(pages)
+                             + " from=" + triggeredFrom)
+                if (rmhLang !== "zh") {
+                    root.convertPagesOriginal(pages, triggeredFrom)
+                    return
+                }
+                var rmhBusy = false
+                try { rmhBusy = root.notificationQueue.contains("rmh-ocr") } catch (e) {}
+                if (rmhBusy) {
+                    console.warn("RMH-PAGE: 识别进行中, 忽略重复触发")
+                    return
+                }
+                var rmhNotify = function(txt, icon, persistent) {
+                    root.rmhNotify(txt, icon, persistent)
+                }
+                rmhNotify(qsTranslate("HwcNotificationBar", "Converting to text (%1)").arg("中文"), "", true)
+                var docId = ""
+                try { docId = root.document && root.document.id ? String(root.document.id) : "" } catch (e) {}
+                var pageNo = (pages && pages.length) ? pages[0] : 0
+                var xhr = new XMLHttpRequest()
+                xhr.open("POST", "http://127.0.0.1:9190/ai-ocr-page")
+                xhr.setRequestHeader("Content-Type", "application/json")
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== 4) return
+                    if (xhr.status !== 200) {
+                        console.warn("RMH-PAGE: HTTP " + xhr.status + " " + xhr.responseText)
+                        rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert text. Please check your Wi-Fi connection."), "qrc:/ark/icons/wifi_x", false)
+                        return
+                    }
+                    var j = null
+                    try { j = JSON.parse(xhr.responseText) } catch (e) {}
+                    if (!j || typeof j.text !== "string" || j.text.length === 0) {
+                        console.warn("RMH-PAGE: empty result")
+                        rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert notes"), "qrc:/ark/icons/information_circle", false)
+                        return
+                    }
+                    // 结果先放剪贴板兜底, 然后照官方整页转换的做法:
+                    // 新建一页 (原页墨迹保留) → 打开 → 进文本模式 → 粘贴文字
+                    try { Clipboard.setTextFromString(j.text) } catch (e) {}
+                    try {
+                        var newPage = root.currentPage + 1
+                        var validTemplate = root.document.templateForPage(root.currentPage)
+                        root.addingPage = true
+                        DocumentController.addPageWithTemplateAndPageSize(root.document.id, newPage, validTemplate, DeviceScreenInfo.paperSize, function() {
+                            root.addingPage = false
+                            try { root.openPage(newPage) } catch (e) { console.warn("RMH-PAGE: openPage err " + e) }
+                            var rmhWait = Qt.createQmlObject('import QtQuick; Timer { interval: 250; repeat: true; running: true }', root, "rmhPageWait")
+                            var tries = 0
+                            rmhWait.triggered.connect(function() {
+                                tries++
+                                if (sceneView.status !== SceneView.Active && tries < 20) return
+                                rmhWait.destroy()
+                                try {
+                                    enterTextMode(true)
+                                    sceneController.pasteClipboardContent(Clipboard.text, SceneController.KeepStyle)
+                                    console.warn("RMH-PAGE: 已插入 " + j.text.length + " 字到新页 " + newPage)
+                                    // 完成提示带撤销 —— 完全照抄官方"笔迹复制"那条通知的
+                                    // 内联字面量写法 (动态构造的对象实测不渲染按钮)
+                                    try {
+                                        root.notificationQueue.dequeue("rmh-ocr")
+                                        root.notificationQueue.dequeue("rmh-ocr-done")
+                                        root.notificationQueue.enqueue({
+                                            "id": "rmh-ocr-done",
+                                            "text": qsTranslate("HwcDialog", "Converted text added as new page"),
+                                            "icon": "qrc:/ark/icons/paste",
+                                            "actionText": qsTranslate("HwcDialog", "Undo"),
+                                            "onClicked": function() {
+                                                root.notificationQueue.dequeue("rmh-ocr-done")
+                                                try {
+                                                    DocumentController.deletePages(root.document.id, [newPage], function() {
+                                                        try { root.openPage(Math.max(0, newPage - 1)) } catch (e) { console.warn("RMH-PAGE: undo openPage err " + e) }
+                                                    })
+                                                    console.warn("RMH-PAGE: 已撤销新页 " + newPage)
+                                                } catch (e) { console.warn("RMH-PAGE: undo 失败 " + e) }
+                                            },
+                                            "context": Notification.Context.Document,
+                                            "duration": Notification.Duration.Persistent
+                                        })
+                                    } catch (e) { console.warn("RMH-PAGE: 完成通知失败 " + e) }
+                                } catch (e) {
+                                    console.warn("RMH-PAGE: 插入失败 " + e)
+                                    rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert notes"), "qrc:/ark/icons/information_circle", false)
+                                }
+                            })
+                        })
+                    } catch (e) {
+                        console.warn("RMH-PAGE: addPage 失败 " + e)
+                        rmhNotify(qsTranslate("HwcNotificationBar", "Unable to convert notes"), "qrc:/ark/icons/information_circle", false)
+                    }
+                }
+                xhr.send(JSON.stringify({ doc: docId, page: pageNo }))
+            }
+        }
+    END TRAVERSE
+END AFFECT
