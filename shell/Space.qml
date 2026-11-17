@@ -2260,11 +2260,16 @@ Rectangle {
     }
 
     // ── 网络认证 (公开 Wi-Fi 的网页登录) ──
-    Item {
+    // Loader 按需创建: 不打开认证页时不构建组件树 —— 全屏 Item 常驻会让
+    // 墨水屏上设置页的滚动明显变卡 (1.2.0 实测)
+    Loader {
         id: netAuthPage
+        active: space.netAuthOpen
         anchors.fill: parent
-        visible: space.netAuthOpen
         z: 500
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
         Rectangle { anchors.fill: parent; color: space.th.bg }
         Text {
             id: naTitle
@@ -2338,6 +2343,8 @@ Rectangle {
                     }
                     MouseArea { anchors.fill: parent; enabled: !space.netAuthBusy; onClicked: space.submitNetAuth() }
                 }
+            }
+        }
             }
         }
     }
