@@ -33,6 +33,7 @@ clean:
 #   make update-zip VERSION=v1.1.0 NOTES="..." NOTES_EN="..."
 # testers 只在首次进商店索引时生效 (先给内测名单), 全量开放 = 删掉线上索引里这一项的 testers。
 # 产物 dist/space-<版本>.zip, 拷进应用仓库 dist/ 后 ./pack.sh --index upload 并入商店索引 (id = space)。
+# 上传同时会同步到阿里云 CDN 商店 (heartblue.cn, 国内设备下载走它), 见 pack.sh 里的 cdn 段。
 VERSION ?= $(shell git describe --tags --always 2>/dev/null)
 update-zip: aarch64 armv7
 	rm -rf dist/update && mkdir -p dist/update/bin
