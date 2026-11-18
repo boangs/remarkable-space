@@ -103,6 +103,67 @@ Rectangle {
         }
     }
     onScreenModeChanged: space.applyScreenMode()
+
+    // ─── 滚动合并渲染: 滑动/惯性期间不逐帧刷屏, 停手后一次到位 ───────────
+    // 3.30.0.111 实测: QML 逐帧像素滚动会把整页 QRegion 每帧提交一次(同一手势 28 帧),
+    // 把 swtcon 更新队列压垮 ("generator thread has fallen behind"); 原厂长列表同样
+    // 手势只提交 1 次(松手后直接跳到目标位置)。xofm.libs.epaper.RenderBlocker
+    // start() 后暂停上屏、stop() 时刷最终状态, 正好对上原厂行为。
+    // rm2 没有 xofm.libs.epaper 模块 → 创建失败, 保持原有逐帧刷新(不改老设备行为)。
+    // 覆盖范围: 自动遍历场景树里所有 Flickable/ListView/GridView(外壳页面 + 应用),
+    // 定时重扫接住懒加载的应用页面; 已连接的 item 按对象身份去重。
+    property var scrollBlocker: null
+    property var scrollWired: []
+    property bool scrollBlockerFailed: false
+    function ensureScrollBlocker() {
+        if (space.scrollBlocker !== null) return space.scrollBlocker
+        if (space.scrollBlockerFailed) return null
+        try {
+            space.scrollBlocker = Qt.createQmlObject(
+                'import xofm.libs.epaper; RenderBlocker { reason: "space-scroll"; deadline: 4000 }',
+                space, "spaceScrollBlocker")
+        } catch (e) {
+            console.warn("[space] RenderBlocker 不可用, 滚动保持逐帧刷新: " + e)
+            space.scrollBlockerFailed = true
+            space.scrollBlocker = null
+        }
+        return space.scrollBlocker
+    }
+    // 任一滚动开始 → 暂停上屏; 任一滚动结束 → 立即放行(即使还有别的列表在动, 只是多刷一帧,
+    // 绝不能因为计数泄漏把屏幕永久冻住; 兜底还有 blocker 自己的 deadline)
+    function onScrollMovingChanged(item) {
+        if (item.moving) {
+            if (space.ensureScrollBlocker()) space.scrollBlocker.start()
+        } else if (space.scrollBlocker) {
+            space.scrollBlocker.stop()
+        }
+    }
+    function wireScrollItem(item) {
+        item.movingChanged.connect(function () { space.onScrollMovingChanged(item) })
+    }
+    function walkScrollItems(node, out) {
+        if (!node) return
+        if (typeof node.moving !== "undefined" && typeof node.contentY !== "undefined"
+                && typeof node.contentHeight !== "undefined")
+            out.push(node)
+        var kids = node.children
+        if (kids) for (var i = 0; i < kids.length; i++) space.walkScrollItems(kids[i], out)
+    }
+    function scanScrollItems() {
+        if (space.ensureScrollBlocker() === null) return   // 没有 RenderBlocker (rm2): 不扫描不接线
+        var found = []
+        space.walkScrollItems(space, found)
+        for (var i = 0; i < found.length; i++) {
+            if (space.scrollWired.indexOf(found[i]) < 0) space.wireScrollItem(found[i])
+        }
+        space.scrollWired = found
+    }
+    Timer {
+        interval: 1000; repeat: true; running: space.visible
+        onTriggered: space.scanScrollItems()
+    }
+    onCurrentChanged: space.scanScrollItems()
+
     // 外壳自己的设置存在应用数据区的保留 id "shell" 下 (后端 id 正则不允许下划线开头)
     function loadShellCfg() {
         request("GET", baseUrl + "/space/apps/shell/data/config", null, function (st, r) {
@@ -1045,7 +1106,7 @@ Rectangle {
     Timer { id: toastTimer; interval: 4000; repeat: false; onTriggered: space.toastText = "" }
     Timer { interval: 15000; running: space.visible; repeat: true; onTriggered: space.now = new Date() }
 
-    Component.onCompleted: { loadTheme(); reload(); loadShellCfg(); loadTimezones(); loadDevice(); applyAppLoadEntryVisibility(); libStart() }
+    Component.onCompleted: { loadTheme(); reload(); loadShellCfg(); loadTimezones(); loadDevice(); applyAppLoadEntryVisibility(); libStart(); scanScrollItems() }
     onVisibleChanged: { if (visible) { applyAppLoadEntryVisibility(); libStart() } else libStop() }
     Component.onDestruction: libStop()
 
