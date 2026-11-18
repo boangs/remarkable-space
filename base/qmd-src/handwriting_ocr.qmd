@@ -70,7 +70,10 @@ AFFECT /qml/device/view/documentview/ItemSelection.qml
                 }
                 var p0 = selectionHandler.mapToItem(host, sr.x, sr.y)
                 var p1 = selectionHandler.mapToItem(host, sr.x + sr.width, sr.y + sr.height)
-                rmhNotify(qsTranslate("HwcNotificationBar", "Converting to text (%1)").arg(Qt.locale().nativeLanguageName), "", true)
+                // 复用官方译文, 但去掉括号里的语言名 (识别与语言无关): 剥掉 %1 及其括号
+                var rmhConv = qsTranslate("HwcNotificationBar", "Converting to text (%1)")
+                rmhConv = rmhConv.replace(/[（(]\s*%1\s*[)）]/, "").replace("%1", "").replace(/\s{2,}/g, " ")
+                rmhNotify(rmhConv, "", true)
                 // 隐藏选区边框和手柄再截图 (只隐藏 selectionBorder, 保留
                 // selectionPreview —— 那个才画着选区里的墨迹; 隐藏整个
                 // selectionHandler 会让选区区域整个变白, 识别收到空图)。
