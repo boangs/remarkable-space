@@ -39,6 +39,18 @@ AFFECT /qml/device/view/documentview/DocumentView.qml
                 // 不再按语言分流: 所有语言都先交给大模型识别, 失败回退官方转换。
                 console.warn("RMH-PAGE: convertPages enter pages=" + JSON.stringify(pages)
                              + " from=" + triggeredFrom)
+                // 设置页「应用到文字识别」关掉时静默走官方识别
+                var rmhOcrOn = true
+                try {
+                    var ox = new XMLHttpRequest()
+                    ox.open("GET", "http://127.0.0.1:9190/ai-ocr-enabled", false)
+                    ox.send()
+                    if (ox.status === 200) { var oj = JSON.parse(ox.responseText); if (oj && oj.enabled === false) rmhOcrOn = false }
+                } catch (e) {}
+                if (!rmhOcrOn) {
+                    root.convertPagesOriginal(pages, triggeredFrom)
+                    return
+                }
                 var rmhBusy = false
                 try { rmhBusy = root.notificationQueue.contains("rmh-ocr") } catch (e) {}
                 if (rmhBusy) {

@@ -28,6 +28,18 @@ AFFECT /qml/device/view/documentview/ItemSelection.qml
                     root.convertSelectionOriginal(position)
                     return
                 }
+                // 设置页「应用到文字识别」关掉时静默走官方识别, 不弹错误提示
+                var rmhOcrOn = true
+                try {
+                    var ox = new XMLHttpRequest()
+                    ox.open("GET", "http://127.0.0.1:9190/ai-ocr-enabled", false)
+                    ox.send()
+                    if (ox.status === 200) { var oj = JSON.parse(ox.responseText); if (oj && oj.enabled === false) rmhOcrOn = false }
+                } catch (e) {}
+                if (!rmhOcrOn) {
+                    root.convertSelectionOriginal(position)
+                    return
+                }
                 var rmhNotifyHost = null
                 try {
                     var p = root.parent
