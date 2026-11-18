@@ -523,94 +523,8 @@ static void ensureLangHelper(QQmlEngine *engine) {
         fprintf(stderr, "[impl] langHelper 创建失败: %s\n", comp.errorString().toUtf8().constData());
 }
 
-// ─── handwriting_ocr: 手写转换语言页注入「中文」───
-// 组件在点「手写转换语言」时由 Loader 实例化, 5s 扫描捕获。
-// 只在 model 末尾追加「中文」, 并 connect onSelected 信号把 Settings 写成 "zh";
-// stock 的 onSelected 照常执行 (选中文时它写的是 languageCode("中文") 的结果, 我们随后覆盖)。
-// 转换拦截在 QML 侧 (ItemSelection 注入)。
-static QObject *g_hwcHelper = nullptr;
-
-static void ensureHwcHelper(QQmlEngine *engine) {
-    if (g_hwcHelper)
-        return;
-    QQmlComponent comp(engine);
-    comp.setData(
-        "import QtQuick\n"
-        "QtObject {\n"
-        "  property string pickedLang: \"\"\n"
-        "  function patchHwc(dlg) {\n"
-        "    try {\n"
-        "      var t = String(dlg.title || \"\")\n"
-        "      if (t.indexOf(\"Handwriting conversion language\") < 0 && t.indexOf(\"\\u624b\\u5199\\u8f6c\\u6362\\u8bed\\u8a00\") < 0) return false\n"
-        "      var m = dlg.model\n"
-        "      if (!m || m.length === undefined) return false\n"
-        "      var arr = []\n"
-        "      for (var i = 0; i < m.length; i++) arr.push(m[i])\n"
-        "      if (arr.indexOf(\"\\u4e2d\\u6587\") >= 0) return false\n"
-        "      var cur = \"en\"\n"
-        "      try {\n"
-        "        var lx = new XMLHttpRequest()\n"
-        "        lx.open(\"GET\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
-        "        lx.send()\n"
-        "        if (lx.status === 200) { var lj = JSON.parse(lx.responseText); if (lj && lj.lang) cur = lj.lang }\n"
-        "      } catch (e) { console.warn(\"[hwc] 读状态失败: \" + e) }\n"
-        "      var sig = dlg.onSelected\n"
-        "      if (!sig || typeof sig.connect !== \"function\") { console.warn(\"[hwc] onSelected 不可 connect\"); return false }\n"
-        "      sig.connect(function(sel) {\n"
-        "        var lang = sel === \"\\u4e2d\\u6587\" ? \"zh\" : \"en\"\n"
-        "        try {\n"
-        "          var sx = new XMLHttpRequest()\n"
-        "          sx.open(\"PUT\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
-        "          sx.setRequestHeader(\"Content-Type\", \"application/json\")\n"
-        "          sx.send(JSON.stringify({ lang: lang }))\n"
-        "          console.warn(\"[hwc] 保存语言: \" + sel + \" -> \" + lang + \" HTTP \" + sx.status)\n"
-        "        } catch (e) { console.warn(\"[hwc] 保存失败: \" + e) }\n"
-        "        // 交给 C++ 在窗口上下文写系统 Settings (helper 里的 Settings 只读)\n"
-        "        pickedLang = lang\n"
-        "      })\n"
-        "      arr.push(\"\\u4e2d\\u6587\")\n"
-        "      dlg.model = arr\n"
-        "      if (cur === \"zh\") { dlg.selectedIndex = arr.length - 1; pickedLang = \"zh\" }\n"
-        "      console.warn(\"[hwc] 已注入中文, len=\" + arr.length + \" cur=\" + cur + \" sel=\" + dlg.selectedIndex)\n"
-        "      return true\n"
-        "    } catch (e) { console.warn(\"[hwc] patch err: \" + e); return false }\n"
-        "  }\n"
-        "  function patchCell(rootItem) {\n"
-        "    try {\n"
-        "      var cur = \"en\"\n"
-        "      try {\n"
-        "        var lx = new XMLHttpRequest()\n"
-        "        lx.open(\"GET\", \"http://127.0.0.1:9190/ai-ocr-lang\", false)\n"
-        "        lx.send()\n"
-        "        if (lx.status === 200) { var lj = JSON.parse(lx.responseText); if (lj && lj.lang) cur = lj.lang }\n"
-        "      } catch (e) { return false }\n"
-        "      if (cur !== \"zh\") return false\n"
-        "      var changed = false\n"
-        "      function walk(it, depth) {\n"
-        "        if (!it || depth > 40) return\n"
-        "        try {\n"
-        "          var t = String(it.text || \"\")\n"
-        "          if ((t.indexOf(\"手写转换\") >= 0 || t.indexOf(\"Handwriting conversion\") >= 0) && it.status !== undefined) {\n"
-        "            if (String(it.status) !== \"中文\") { it.status = \"中文\"; changed = true }\n"
-        "          }\n"
-        "        } catch (e) {}\n"
-        "        var ch = it.children || []\n"
-        "        for (var i = 0; i < ch.length; i++) walk(ch[i], depth + 1)\n"
-        "      }\n"
-        "      walk(rootItem, 0)\n"
-        "      return changed\n"
-        "    } catch (e) { console.warn(\"[hwc] cell patch err: \" + e); return false }\n"
-        "  }\n"
-        "}\n",
-        QUrl());
-    g_hwcHelper = comp.create();
-    if (!g_hwcHelper)
-        fprintf(stderr, "[impl] hwcHelper 创建失败: %s\n", comp.errorString().toUtf8().constData());
-}
-
 static void doInjectLanguage(QQmlEngine *engine) {
     ensureLangHelper(engine);
-    ensureHwcHelper(engine);
     if (!g_langHelper)
         return;
     for (QWindow *w : QGuiApplication::topLevelWindows()) {
@@ -651,28 +565,6 @@ static void doInjectLanguage(QQmlEngine *engine) {
                     if (sig.contains("convertSelection", Qt::CaseInsensitive))
                         fprintf(stderr, "[ocr] ItemSelection method: %s\n", sig.toUtf8().constData());
                 }
-            }
-        }
-        // 设置页「手写转换」显示: Settings 的 setter 校验语言代码 (zh 不在系统列表,
-        // 写入被忽略), 所以直接改 Cell 的显示文本
-        if (g_hwcHelper) {
-            QVariant retC;
-            QMetaObject::invokeMethod(g_hwcHelper, "patchCell", Q_RETURN_ARG(QVariant, retC),
-                                      Q_ARG(QVariant, QVariant::fromValue((QObject *)qw->contentItem())));
-        }
-        // 手写转换语言页 (HWCLanguagePageWindow 的 SelectionComponent), 每个对象只 patch 一次
-        if (g_hwcHelper) {
-            static QList<QPointer<QObject>> hwcDone;
-            bool done = false;
-            for (int i = hwcDone.size() - 1; i >= 0; i--) {
-                if (hwcDone[i].isNull()) hwcDone.removeAt(i);
-                else if (hwcDone[i].data() == dlg) done = true;
-            }
-            if (!done) {
-                QVariant retH;
-                QMetaObject::invokeMethod(g_hwcHelper, "patchHwc", Q_RETURN_ARG(QVariant, retH),
-                                          Q_ARG(QVariant, QVariant::fromValue((QObject *)dlg)));
-                if (retH.toBool()) hwcDone.append(QPointer<QObject>(dlg));
             }
         }
     }
