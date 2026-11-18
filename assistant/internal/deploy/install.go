@@ -476,6 +476,9 @@ for d in /etc/systemd/system /tmp/lc/etc/systemd/system; do
   cp /tmp/10-store-api.conf "$d/remarkable-space.service.d/10-store-api.conf"
   chmod 644 "$d/remarkable-space.service.d/10-store-api.conf"
 done
+# 双写失败不能静默: 只写进内存盘的话重启后商店就退回取不到
+[ -f /tmp/lc/etc/systemd/system/remarkable-space.service.d/10-store-api.conf ] || {
+  echo "✗ 商店配置没能写进 ext4 底层 (重启后会丢)" >&2; exit 1; }
 sync; umount -l /tmp/lc 2>/dev/null || true; rmdir /tmp/lc 2>/dev/null || true
 rm -f /tmp/10-store-api.conf
 systemctl daemon-reload

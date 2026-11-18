@@ -285,6 +285,22 @@ if [ -f "$SYSD/remarkable-space.service" ]; then
     cp -p "$SYSD/remarkable-space.service" "$SNAP/" 2>/dev/null
     [ -f "$SYSD/remarkable-space.service.d/10-store-api.conf" ] && cp -p "$SYSD/remarkable-space.service.d/10-store-api.conf" "$SNAP/" 2>/dev/null
     [ -f "$SYSD/xochitl.service.d/zz-space.conf" ] && cp -p "$SYSD/xochitl.service.d/zz-space.conf" "$SNAP/" 2>/dev/null
+    # 单元在、但 drop-in 缺 (槽内安装只写了单元, 或换了新槽): 从 /home 快照补回。
+    # /etc 是 tmpfs overlay, 不补的话下次重启商店就退回静态索引取不到 (2026-11-19 3.30.0.111)。
+    NEED_HEAL=0
+    if [ ! -f "$SYSD/remarkable-space.service.d/10-store-api.conf" ] && [ -f "$SNAP/10-store-api.conf" ]; then
+        mkdir -p "$SYSD/remarkable-space.service.d" 2>/dev/null
+        cp -p "$SNAP/10-store-api.conf" "$SYSD/remarkable-space.service.d/" 2>/dev/null && NEED_HEAL=1
+    fi
+    if [ ! -f "$SYSD/xochitl.service.d/zz-space.conf" ] && [ -f "$SNAP/zz-space.conf" ]; then
+        mkdir -p "$SYSD/xochitl.service.d" 2>/dev/null
+        cp -p "$SNAP/zz-space.conf" "$SYSD/xochitl.service.d/" 2>/dev/null && NEED_HEAL=1
+    fi
+    if [ "$NEED_HEAL" = 1 ]; then
+        systemd-run --no-block --collect --unit=rmkit-cn-space-heal /bin/sh -c \
+            "systemctl daemon-reload; systemctl try-restart remarkable-space.service" >/dev/null 2>&1
+        echo "[precheck] 空间 drop-in 缺失, 已从 /home 备份补回" >&2
+    fi
 elif [ -f "$SNAP/remarkable-space.service" ] && [ -x /home/root/remarkable-space/space-server ]; then
     mkdir -p "$SYSD" 2>/dev/null
     cp -p "$SNAP/remarkable-space.service" "$SYSD/" 2>/dev/null
